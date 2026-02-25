@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/jugar", "destination": "/liga1_v3.html" },
+    { "source": "/online", "destination": "/login.html" }
+  ]
+}
