@@ -33,6 +33,20 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .nav-link {
+            color: rgba(255,255,255,0.4);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: color 0.2s;
+        }
+        .nav-link:hover { color: #f1c40f; }
         .header-user {
             display: flex;
             align-items: center;
@@ -56,7 +70,7 @@
 
         /* MAIN */
         main {
-            max-width: 900px;
+            max-width: 960px;
             margin: 0 auto;
             padding: 32px 20px;
         }
@@ -209,25 +223,88 @@
             border-radius: 20px;
         }
 
-        /* PRÓXIMO PARTIDO */
-        .next-match {
-            text-align: center;
-            padding: 20px;
-            background: rgba(52,152,219,0.05);
-            border: 1px solid rgba(52,152,219,0.15);
-            border-radius: 12px;
+        /* CARD LIGA ONLINE */
+        .liga-card {
+            background: linear-gradient(135deg, rgba(39,174,96,0.06), rgba(52,152,219,0.04));
+            border: 1px solid rgba(39,174,96,0.2);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        .next-match-label { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-bottom: 10px; }
-        .next-match-teams { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: #3498db; }
-        .next-match-time { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 6px; }
+        .jornada-info {
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .jornada-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .jornada-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: #f1c40f;
+        }
+        .jornada-sub {
+            font-size: 12px;
+            color: rgba(255,255,255,0.3);
+            margin-top: 3px;
+        }
+        .lider-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .lider-label { color: rgba(255,255,255,0.35); }
+        .lider-name { color: #f1c40f; font-weight: 700; }
+        .btn-ir-jornadas {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: #000;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+        .btn-ir-jornadas:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(39,174,96,0.3); }
+        .btn-offline {
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 9px 20px;
+            border-radius: 10px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 15px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+        .btn-offline:hover { border-color: rgba(255,255,255,0.3); color: white; }
 
-        /* TABLA */
+        /* TABLA MINI */
         .tabla-mini { width: 100%; border-collapse: collapse; font-size: 13px; }
         .tabla-mini th { background: rgba(241,196,15,0.1); color: #f1c40f; padding: 8px; text-align: left; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 12px; }
         .tabla-mini td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
         .tabla-mini tr:last-child td { border-bottom: none; }
         .my-row td { color: #f1c40f; font-weight: 700; }
-        .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
 
         /* MSG */
         .save-msg { font-size: 13px; text-align: center; margin-top: 10px; padding: 8px; border-radius: 8px; display: none; }
@@ -246,6 +323,10 @@
 
 <header>
     <div class="header-logo">⚽ LIGA 1 SIMULATOR</div>
+    <div class="header-nav">
+        <a href="jornadas.html" class="nav-link">📅 Jornadas</a>
+        <a href="game.html" class="nav-link">🎮 Offline</a>
+    </div>
     <div class="header-user">
         <span id="header-manager">Cargando...</span>
         <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
@@ -273,7 +354,7 @@
 
                 <div class="form-row">
                     <label>Nombre del equipo</label>
-                    <input type="text" id="eq-nombre" placeholder="Ej: Los Cóndores FC" maxlength="20">
+                    <input type="text" id="eq-nombre" placeholder="Ej: Los Cóndores FC" maxlength="20" oninput="actualizarPreview()">
                 </div>
 
                 <div class="form-row">
@@ -294,7 +375,7 @@
 
                 <div class="form-row">
                     <label>Formación</label>
-                    <select id="eq-formacion">
+                    <select id="eq-formacion" onchange="actualizarPreview()">
                         <option value="4-4-2">4-4-2 Clásica</option>
                         <option value="4-3-3">4-3-3 Ofensiva</option>
                         <option value="3-5-2">3-5-2 Posesión</option>
@@ -328,7 +409,7 @@
                 <div class="save-msg" id="save-msg"></div>
             </div>
 
-            <!-- PREVIEW + PRÓXIMO PARTIDO -->
+            <!-- PREVIEW + LIGA -->
             <div style="display:flex;flex-direction:column;gap:20px;">
 
                 <div class="card">
@@ -340,13 +421,26 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-title">📅 Liga Online</div>
-                    <div class="next-match">
-                        <div class="next-match-label">Estado</div>
-                        <div class="next-match-teams" style="color:#f1c40f;font-size:16px;">🔧 En preparación</div>
-                        <div class="next-match-time">Las jornadas comenzarán cuando haya suficientes managers registrados</div>
+                <!-- CARD LIGA ONLINE -->
+                <div class="liga-card">
+                    <div class="card-title" style="margin-bottom:0;">📅 Liga Online</div>
+
+                    <div class="jornada-info">
+                        <div class="jornada-label">Jornada actual</div>
+                        <div class="jornada-value" id="dash-jornada">Cargando...</div>
+                        <div class="jornada-sub" id="dash-partidos">—</div>
                     </div>
+
+                    <div class="jornada-info" id="dash-lider-box" style="display:none;">
+                        <div class="jornada-label">Líder actual</div>
+                        <div class="lider-row">
+                            <span class="lider-name" id="dash-lider">—</span>
+                            <span id="dash-lider-pts" style="font-size:13px;color:rgba(255,255,255,.4);"></span>
+                        </div>
+                    </div>
+
+                    <a href="jornadas.html" class="btn-ir-jornadas">⚽ VER JORNADAS</a>
+                    <a href="game.html" class="btn-offline">🎮 Modo Offline</a>
                 </div>
 
             </div>
@@ -362,50 +456,94 @@
     const SUPABASE_KEY = 'sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa';
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-
+    const TEMPORADA = '2025';
     let currentUser = null;
     let equipoId = null;
 
-    // Verificar sesión al cargar
+    // ─── INIT ────────────────────────────────────────────────
     async function init() {
         const { data: { session } } = await db.auth.getSession();
-        if (!session) {
-            window.location.href = 'login.html';
-            return;
-        }
+        if (!session) { window.location.href = 'login.html'; return; }
+
         currentUser = session.user;
         const nombre = currentUser.user_metadata?.nombre_manager || currentUser.email.split('@')[0];
         document.getElementById('header-manager').innerText = '👤 ' + nombre;
         document.getElementById('bienvenida-titulo').innerText = '¡Hola, ' + nombre + '!';
 
-        await cargarEquipo();
+        await Promise.all([cargarEquipo(), cargarResumenLiga()]);
+
         document.getElementById('loading').style.display = 'none';
         document.getElementById('contenido').style.display = 'block';
     }
 
+    // ─── EQUIPO ───────────────────────────────────────────────
     async function cargarEquipo() {
-        const { data, error } = await supabase
-            .from('equipos')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .single();
-
+        // CORRECCIÓN: usar db (no supabase que no estaba definido)
+        const { data } = await db.from('equipos').select('*').eq('user_id', currentUser.id).single();
         if (data) {
             equipoId = data.id;
-            document.getElementById('eq-nombre').value    = data.nombre;
-            document.getElementById('eq-base').value      = data.equipo_base;
-            document.getElementById('eq-formacion').value = data.formacion;
-            document.getElementById('eq-color1').value    = data.color1;
-            document.getElementById('eq-color2').value    = data.color2;
-            document.getElementById('monedas-display').innerText = data.monedas;
+            document.getElementById('eq-nombre').value    = data.nombre     || '';
+            document.getElementById('eq-base').value      = data.equipo_base || 'u';
+            document.getElementById('eq-formacion').value = data.formacion   || '4-4-2';
+            document.getElementById('eq-color1').value    = data.color1      || '#3498db';
+            document.getElementById('eq-color2').value    = data.color2      || '#ffffff';
+            document.getElementById('monedas-display').innerText = data.monedas ?? 500;
             actualizarPreview();
         }
     }
 
-    function actualizarPreview() {
-        const nombre   = document.getElementById('eq-nombre').value || 'Mi Equipo FC';
-        const color1   = document.getElementById('eq-color1').value;
-        const color2   = document.getElementById('eq-color2').value;
+    // ─── RESUMEN LIGA ─────────────────────────────────────────
+    async function cargarResumenLiga() {
+        // Calcular jornada actual (primera con partidos pendientes)
+        const { data: all } = await db.from('jornadas')
+            .select('numero_jornada, estado')
+            .eq('temporada', TEMPORADA)
+            .order('numero_jornada');
+
+        if (!all || all.length === 0) {
+            document.getElementById('dash-jornada').innerText = 'Sin calendario';
+            document.getElementById('dash-partidos').innerText = 'Genera el fixture en Jornadas';
+            return;
+        }
+
+        // Agrupar por jornada
+        const byJ = {};
+        all.forEach(r => {
+            if (!byJ[r.numero_jornada]) byJ[r.numero_jornada] = [];
+            byJ[r.numero_jornada].push(r.estado);
+        });
+
+        let jornadaActual = 34;
+        let jugadas = 0;
+        Object.entries(byJ).forEach(([num, estados]) => {
+            if (estados.every(e => e === 'finalizado')) jugadas++;
+            else if (parseInt(num) < jornadaActual) jornadaActual = parseInt(num);
+        });
+
+        document.getElementById('dash-jornada').innerText = `Jornada ${jornadaActual} / 34`;
+        document.getElementById('dash-partidos').innerText = `${jugadas * 9} partidos jugados`;
+
+        // Líder
+        const { data: pos } = await db.from('posiciones')
+            .select('equipo, pts, dg')
+            .eq('temporada', TEMPORADA)
+            .order('pts', { ascending: false })
+            .order('dg', { ascending: false })
+            .limit(1);
+
+        if (pos && pos[0] && pos[0].pts > 0) {
+            document.getElementById('dash-lider-box').style.display = 'block';
+            document.getElementById('dash-lider').innerText = pos[0].equipo;
+            document.getElementById('dash-lider-pts').innerText = pos[0].pts + ' pts';
+        }
+    }
+
+    // ─── PREVIEW ──────────────────────────────────────────────
+    // CORRECCIÓN: exponer al scope global para que onclick funcione con type="module"
+    window.actualizarPreview = function() {
+        const nombre    = document.getElementById('eq-nombre').value || 'Mi Equipo FC';
+        const color1    = document.getElementById('eq-color1').value;
+        const color2    = document.getElementById('eq-color2').value;
         const formacion = document.getElementById('eq-formacion').value;
 
         document.getElementById('preview-shield').style.background = color1;
@@ -414,9 +552,10 @@
         document.getElementById('preview-formation').innerText = formacion;
         document.getElementById('swatch1').style.background = color1;
         document.getElementById('swatch2').style.background = color2;
-    }
+    };
 
-    async function guardarEquipo() {
+    // ─── GUARDAR ──────────────────────────────────────────────
+    window.guardarEquipo = async function() {
         const datos = {
             nombre:      document.getElementById('eq-nombre').value.trim() || 'Mi Equipo FC',
             equipo_base: document.getElementById('eq-base').value,
@@ -429,7 +568,9 @@
         if (equipoId) {
             ({ error } = await db.from('equipos').update(datos).eq('id', equipoId));
         } else {
-            const { data, error: err } = await db.from('equipos').insert({ ...datos, user_id: currentUser.id, monedas: 500 }).select().single();
+            const { data, error: err } = await db.from('equipos')
+                .insert({ ...datos, user_id: currentUser.id, monedas: 500 })
+                .select().single();
             error = err;
             if (data) equipoId = data.id;
         }
@@ -437,25 +578,20 @@
         const msg = document.getElementById('save-msg');
         if (error) {
             msg.className = 'save-msg err';
-            msg.innerText = '❌ Error al guardar: ' + error.message;
+            msg.innerText = '❌ Error: ' + error.message;
         } else {
             msg.className = 'save-msg ok';
             msg.innerText = '✅ ¡Equipo guardado!';
             actualizarPreview();
-            setTimeout(() => msg.style.display = 'none', 3000);
+            setTimeout(() => { msg.style.display = 'none'; }, 3000);
         }
-    }
+    };
 
-    async function cerrarSesion() {
+    // ─── LOGOUT ───────────────────────────────────────────────
+    window.cerrarSesion = async function() {
         await db.auth.signOut();
         window.location.href = 'index.html';
-    }
-
-    // Actualizar preview en tiempo real
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('eq-nombre').addEventListener('input', actualizarPreview);
-        document.getElementById('eq-formacion').addEventListener('change', actualizarPreview);
-    });
+    };
 
     init();
 </script>
