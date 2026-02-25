@@ -88,6 +88,15 @@
         .setup-icon { font-size: 52px; margin-bottom: 12px; }
         .setup-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; margin-bottom: 8px; }
         .setup-desc { color: rgba(255,255,255,0.35); font-size: 14px; margin-bottom: 28px; line-height: 1.7; }
+
+        /* CARDS MODO */
+        .modo-card { background: rgba(255,255,255,.04); border: 2px solid rgba(255,255,255,.08); border-radius: 14px; padding: 24px 20px; cursor: pointer; transition: all .2s; text-align: center; }
+        .modo-card:hover { border-color: rgba(241,196,15,.4); transform: translateY(-2px); }
+        .modo-card.selected { border-color: #f1c40f; background: rgba(241,196,15,.08); }
+        .modo-titulo { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; margin-bottom: 8px; color: #f1c40f; }
+        .modo-desc { font-size: 13px; color: rgba(255,255,255,.4); line-height: 1.6; margin-bottom: 12px; }
+        .modo-lista { list-style: none; text-align: left; font-size: 13px; color: rgba(255,255,255,.5); display: flex; flex-direction: column; gap: 4px; }
+
         .btn-gen { background: linear-gradient(135deg, #f1c40f, #e67e22); color: #000; border: none; padding: 14px 36px; border-radius: 12px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; cursor: pointer; transition: 0.2s; }
         .btn-gen:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(241,196,15,0.25); }
 
@@ -152,12 +161,39 @@
 
     <div class="setup-panel" id="setup-panel" style="display:none;">
         <div class="setup-icon">🗓️</div>
-        <div class="setup-title">Calendario no generado</div>
-        <div class="setup-desc">
-            Aún no existe el fixture de la temporada.<br>
-            Genera automáticamente <strong style="color:#f1c40f;">34 jornadas · 306 partidos</strong> con los 18 equipos de Liga 1.
+        <div class="setup-title">Elige el tipo de liga</div>
+        <div class="setup-desc">Antes de generar el fixture, decide cómo se formarán los equipos.</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:600px;margin:0 auto 28px;">
+            <div class="modo-card" id="card-oficial" onclick="seleccionarModo('oficial')">
+                <div style="font-size:40px;margin-bottom:10px;">🏆</div>
+                <div class="modo-titulo">Liga Oficial</div>
+                <div class="modo-desc">Cada manager representa un equipo real de Liga 1. Un equipo por manager.</div>
+                <ul class="modo-lista">
+                    <li>✅ 18 equipos reales</li>
+                    <li>✅ Jugadores reales</li>
+                    <li>✅ Un dueño por equipo</li>
+                </ul>
+            </div>
+            <div class="modo-card" id="card-custom" onclick="seleccionarModo('custom')">
+                <div style="font-size:40px;margin-bottom:10px;">🎨</div>
+                <div class="modo-titulo">Liga Personalizada</div>
+                <div class="modo-desc">Cada manager crea su propio equipo con nombre, colores y jugadores inventados.</div>
+                <ul class="modo-lista">
+                    <li>✅ Nombre libre</li>
+                    <li>✅ Colores propios</li>
+                    <li>✅ Jugadores inventados</li>
+                </ul>
+            </div>
         </div>
-        <button class="btn-gen" onclick="generarCalendario()">🚀 GENERAR FIXTURE</button>
+
+        <div id="selector-equipo-oficial" style="display:none;max-width:500px;margin:0 auto 20px;">
+            <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:10px;letter-spacing:1px;text-transform:uppercase;">Tu equipo en la liga</div>
+            <select id="sel-equipo-oficial" style="width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 16px;color:white;font-family:'Rajdhani',sans-serif;font-size:16px;outline:none;margin-bottom:6px;"></select>
+            <div id="equipo-tomado-msg" style="color:#e74c3c;font-size:13px;display:none;">⚠️ Este equipo ya tiene dueño</div>
+        </div>
+
+        <button class="btn-gen" id="btn-generar" onclick="generarCalendario()" style="display:none;">🚀 GENERAR FIXTURE</button>
     </div>
 
     <div class="main-grid" id="main-grid" style="display:none;">
@@ -221,13 +257,16 @@ const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 const TEMPORADA = '2025';
 const TOT       = 34;
 const EQUIPOS   = [
-    'Universitario','Alianza Lima','Sporting Cristal',
-    'Melgar','Cusco FC','Cienciano',
-    'ADT','UTC','Mannucci',
-    'Binacional','Deportivo Garcilaso','Sport Huancayo',
-    'Cesar Vallejo','Grau','Alianza Atlético',
-    'Los Chankas','Ayacucho FC','UCV'
+    'Universitario de Deportes','Alianza Lima','Sporting Cristal',
+    'FBC Melgar','Cusco FC','Sport Boys Association',
+    'Deportivo Garcilaso','Comerciantes Unidos','Cienciano',
+    'Sport Huancayo','ADT de Tarma','Atlético Grau',
+    'UTC Cajamarca','Juan Pablo II College','CD Los Chankas',
+    'FC Cajamarca','Alianza Atlético Sullana','Deportivo Moquegua'
 ];
+
+let modoLiga = null; // 'oficial' | 'custom'
+let equiposOcupados = []; // equipos ya elegidos por otros managers
 
 let jornadaActual = 1;
 let estadoJ = {};
@@ -276,7 +315,70 @@ function mostrarUI() {
 }
 
 // ─── GENERAR CALENDARIO ───────────────────────────────────────
+// ─── SELECCIÓN DE MODO ────────────────────────────────────
+window.seleccionarModo = async function(modo) {
+    modoLiga = modo;
+
+    // Highlight card seleccionada
+    document.getElementById('card-oficial').classList.toggle('selected', modo === 'oficial');
+    document.getElementById('card-custom').classList.toggle('selected', modo === 'custom');
+
+    if (modo === 'oficial') {
+        // Cargar equipos ya ocupados por otros managers
+        const { data } = await db.from('equipos').select('equipo_base').not('equipo_base', 'is', null);
+        equiposOcupados = (data || []).map(r => r.equipo_base);
+
+        // Mi equipo actual (para no bloquearlo a mí mismo)
+        const { data: { session } } = await db.auth.getSession();
+        const { data: miEq } = await db.from('equipos').select('equipo_base').eq('user_id', session.user.id).single();
+        const miEquipoActual = miEq?.equipo_base || null;
+
+        // Poblar select
+        const sel = document.getElementById('sel-equipo-oficial');
+        sel.innerHTML = '<option value="">— Selecciona tu equipo —</option>';
+        EQUIPOS.forEach(eq => {
+            const ocupado = equiposOcupados.includes(eq) && eq !== miEquipoActual;
+            sel.innerHTML += `<option value="${eq}" ${ocupado ? 'disabled' : ''}>${eq}${ocupado ? ' (ocupado)' : ''}</option>`;
+        });
+        if (miEquipoActual) sel.value = miEquipoActual;
+
+        sel.onchange = () => {
+            const msg = document.getElementById('equipo-tomado-msg');
+            const val = sel.value;
+            const tomado = equiposOcupados.includes(val) && val !== miEquipoActual;
+            msg.style.display = tomado ? 'block' : 'none';
+            document.getElementById('btn-generar').style.display = (val && !tomado) ? 'inline-block' : 'none';
+        };
+        sel.dispatchEvent(new Event('change'));
+
+        document.getElementById('selector-equipo-oficial').style.display = 'block';
+    } else {
+        // Modo custom: no necesita elegir equipo
+        document.getElementById('selector-equipo-oficial').style.display = 'none';
+        document.getElementById('btn-generar').style.display = 'inline-block';
+    }
+};
+
 window.generarCalendario = async function() {
+    // Si modo oficial, guardar elección de equipo
+    if (modoLiga === 'oficial') {
+        const equipoElegido = document.getElementById('sel-equipo-oficial').value;
+        if (!equipoElegido) { toast('Selecciona tu equipo primero', 'err'); return; }
+
+        const { data: { session } } = await db.auth.getSession();
+        const { error: eqErr } = await db.from('equipos').upsert({
+            user_id: session.user.id,
+            equipo_base: equipoElegido,
+            modo_liga: 'oficial'
+        }, { onConflict: 'user_id' });
+        if (eqErr) { toast('Error guardando equipo: ' + eqErr.message, 'err'); return; }
+    } else if (modoLiga === 'custom') {
+        const { data: { session } } = await db.auth.getSession();
+        await db.from('equipos').upsert({ user_id: session.user.id, modo_liga: 'custom' }, { onConflict: 'user_id' });
+    } else {
+        toast('Elige primero el tipo de liga', 'err'); return;
+    }
+
     overlay('Generando 306 partidos...');
     try {
         const fixture = roundRobin(EQUIPOS);
