@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — Liga 1 Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0a0a0a; color: white; font-family: 'Rajdhani', sans-serif; min-height: 100vh; padding: 24px; }
+
+        .header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,.07); padding-bottom: 16px; }
+        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 4px; background: linear-gradient(135deg,#e74c3c,#c0392b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .admin-badge { background: rgba(231,76,60,.15); border: 1px solid rgba(231,76,60,.3); color: #e74c3c; font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; padding: 3px 10px; border-radius: 5px; }
+
+        .grid { display: grid; grid-template-columns: 380px 1fr; gap: 24px; max-width: 1100px; }
+
+        .card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 24px; }
+        .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+        label { display: block; font-size: 12px; color: rgba(255,255,255,.4); margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase; }
+        select, input[type="number"] {
+            width: 100%; background: rgba(255,255,255,.05); border: 1.5px solid rgba(255,255,255,.1);
+            border-radius: 8px; padding: 10px 14px; color: white; font-family: 'Rajdhani',sans-serif;
+            font-size: 15px; outline: none; transition: .2s; margin-bottom: 14px;
+        }
+        select:focus, input:focus { border-color: #f1c40f; }
+
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 1px; cursor: pointer; border: none; transition: .2s; width: 100%; justify-content: center; margin-bottom: 10px; }
+        .btn:disabled { opacity: .4; cursor: not-allowed; }
+        .btn-red    { background: #e74c3c; color: #fff; }
+        .btn-red:not(:disabled):hover { background: #c0392b; transform: translateY(-1px); }
+        .btn-green  { background: #27ae60; color: #fff; }
+        .btn-green:not(:disabled):hover { background: #2ecc71; transform: translateY(-1px); }
+        .btn-gold   { background: #f1c40f; color: #000; }
+        .btn-gold:not(:disabled):hover { background: #f39c12; transform: translateY(-1px); }
+        .btn-purple { background: #8e44ad; color: #fff; }
+        .btn-purple:not(:disabled):hover { background: #9b59b6; }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,.15); color: rgba(255,255,255,.6); }
+        .btn-outline:hover { border-color: #f1c40f; color: #f1c40f; }
+
+        /* STATUS */
+        .status-box { background: rgba(255,255,255,.04); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+        .status-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: 14px; }
+        .status-row:last-child { border-bottom: none; }
+        .status-key { color: rgba(255,255,255,.35); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+        .status-val { font-weight: 700; font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px; }
+        .status-val.green { color: #2ecc71; }
+        .status-val.gold  { color: #f1c40f; }
+        .status-val.red   { color: #e74c3c; }
+        .status-val.gray  { color: rgba(255,255,255,.3); }
+
+        /* LOG */
+        .log { background: #0d0f14; border: 1px solid rgba(255,255,255,.06); border-radius: 8px; padding: 12px 14px; height: 280px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+        .log-entry { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.03); color: rgba(255,255,255,.6); }
+        .log-entry.ok  { color: #2ecc71; }
+        .log-entry.err { color: #e74c3c; }
+        .log-entry.gol { color: #f1c40f; }
+        .log-entry.info { color: #3498db; }
+
+        /* PARTIDOS */
+        .partidos-grid { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+        .partido-row { display: grid; grid-template-columns: 1fr auto 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.06); border-radius: 8px; font-size: 13px; }
+        .partido-row.jugado { border-left: 3px solid #27ae60; opacity: .6; }
+        .partido-row.en-vivo { border-left: 3px solid #f1c40f; }
+        .p-score { font-family: 'Bebas Nye', sans-serif; font-weight: 700; text-align: center; color: #f1c40f; min-width: 40px; }
+        .p-actions { display: flex; gap: 4px; }
+        .btn-sm { padding: 4px 10px; border-radius: 5px; font-family: 'Bebas Neue', sans-serif; font-size: 12px; cursor: pointer; border: none; transition: .15s; }
+        .btn-sm-gol { background: #27ae60; color: #fff; }
+        .btn-sm-gol:hover { background: #2ecc71; }
+        .btn-sm-fin { background: #e74c3c; color: #fff; }
+        .btn-sm-fin:hover { background: #c0392b; }
+
+        /* PROGRESS */
+        .progress-wrap { background: rgba(255,255,255,.05); border-radius: 20px; height: 6px; margin: 8px 0 16px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #f1c40f; border-radius: 20px; transition: width .5s; }
+
+        .divider { border: none; border-top: 1px solid rgba(255,255,255,.06); margin: 16px 0; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="logo">⚽ LIGA 1 SIMULATOR</div>
+    <span class="admin-badge">🔒 ADMIN PANEL</span>
+</div>
+
+<div class="grid">
+
+    <!-- COLUMNA IZQUIERDA: CONTROLES -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+        <!-- STATUS -->
+        <div class="card">
+            <div class="card-title">📊 Estado Actual</div>
+            <div class="status-box">
+                <div class="status-row">
+                    <span class="status-key">Estado Liga</span>
+                    <span class="status-val" id="st-estado">—</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-key">Jornada Activa</span>
+                    <span class="status-val gold" id="st-jornada">—</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-key">Partidos Jugados</span>
+                    <span class="status-val" id="st-jugados">—</span>
+                </div>
+                <div class="status-row">
+                    <span class="status-key">Hora Programada</span>
+                    <span class="status-val gray">7:00 PM (UTC-5)</span>
+                </div>
+            </div>
+            <button class="btn btn-outline" onclick="cargarEstado()" style="font-size:14px;padding:7px;">↻ Actualizar</button>
+        </div>
+
+        <!-- ACTIVAR JORNADA -->
+        <div class="card">
+            <div class="card-title">⚡ Activar Jornada</div>
+            <label>Número de jornada</label>
+            <select id="sel-jornada">
+                <option value="">— Seleccionar —</option>
+            </select>
+            <div class="progress-wrap"><div class="progress-bar" id="sim-progress" style="width:0%"></div></div>
+            <button class="btn btn-green" id="btn-activar" onclick="activarJornada()">🟢 Activar y Simular en Vivo</button>
+            <button class="btn btn-outline" onclick="detenerJornada()">⏹ Detener Jornada</button>
+        </div>
+
+        <!-- ACCIÓN MANUAL -->
+        <div class="card">
+            <div class="card-title">🔧 Acciones Manuales</div>
+            <label>Insertar Gol Manual</label>
+            <select id="sel-partido-gol" style="margin-bottom:8px;"></select>
+            <select id="sel-equipo-gol">
+                <option value="local">Equipo Local</option>
+                <option value="visitante">Equipo Visitante</option>
+            </select>
+            <button class="btn btn-gold" onclick="insertarGolManual()">⚽ Insertar Gol</button>
+            <hr class="divider">
+            <button class="btn btn-purple" onclick="marcarJornadaFinalizada()">✅ Marcar Jornada Finalizada</button>
+        </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: PARTIDOS + LOG -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+        <!-- PARTIDOS DE LA JORNADA -->
+        <div class="card">
+            <div class="card-title">📋 Partidos de la Jornada <span id="j-num" style="color:#f1c40f;"></span></div>
+            <div class="partidos-grid" id="partidos-grid">
+                <div style="text-align:center; padding:20px; color:rgba(255,255,255,.3);">Selecciona una jornada</div>
+            </div>
+        </div>
+
+        <!-- LOG -->
+        <div class="card">
+            <div class="card-title">📝 Log de Eventos</div>
+            <div class="log" id="log"></div>
+        </div>
+
+    </div>
+
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL = 'https://hpvpxadhbftiulwmysaw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa';
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TEMPORADA = '2025';
+let jornadaActiva = null;
+let partidos = [];
+let simInterval = null;
+let minutoActual = 0;
+
+// Rosters simplificados para goles simulados
+const GOLEADORES = {
+    'Universitario':    ['Valera','Flores','Gassama','Concha','Castillo'],
+    'Alianza Lima':     ['Girotti','Guerrero','Quevedo','Ramos','Aquino'],
+    'Sporting Cristal': ['Vizeu','Iberico','González','Yotún','Benavente'],
+    'Melgar':           ['Erustes','De Santis','Zanelatto','Cáceres','Salas'],
+    'Cusco FC':         ['Callejo','Tévez','Colitto','Manzaneda','Auca'],
+    'Cienciano':        ['Carando','Pacheco','Sandoval','Romero','García'],
+    'ADT':              ['Rodríguez','Rengifo','Mazzo','Guivín','Ojeda'],
+    'Grau':             ['Ruidíaz','Camargo','Delgadillo','Guarderas','Barreto'],
+    'Sport Huancayo':   ['Díaz','Huaccha','Magallanes','Canela','Salcedo'],
+    'Binacional':       ['Jugador 1','Jugador 2','Jugador 3'],
+    'Deportivo Garcilaso':['Graneros','Olivares','Sandoval','Garrafa','Ascues'],
+    'Cesar Vallejo':    ['Lavandeira','Ocas','Barcos','Peralta','Meza'],
+    'Alianza Atlético': ['Guzmán','Quintana','Urciuoli','Lupú','Vásquez'],
+    'Mannucci':         ['Jugador 1','Jugador 2','Jugador 3'],
+    'UTC':              ['De Jesús','Lliuya','Muñoz','Arce','Núñez'],
+    'Los Chankas':      ['Camargo','Bueno','Sánchez','Dioses','Manzaneda'],
+    'Ayacucho FC':      ['Jugador 1','Jugador 2','Jugador 3'],
+    'UCV':              ['Jugador 1','Jugador 2','Jugador 3'],
+};
+
+// ─── INIT ──────────────────────────────────────────────────
+async function init() {
+    await cargarEstado();
+    await cargarJornadas();
+}
+
+window.cargarEstado = async function() {
+    const { data: cfg } = await db.from('config_liga').select('*').eq('id',1).single();
+    jornadaActiva = cfg;
+    if (!cfg) return;
+
+    const estados = { 'esperando':'gray', 'en_vivo':'green', 'finalizado':'gold' };
+    document.getElementById('st-estado').innerText = cfg.estado.toUpperCase();
+    document.getElementById('st-estado').className = 'status-val ' + (estados[cfg.estado]||'gray');
+    document.getElementById('st-jornada').innerText = cfg.jornada_activa || '—';
+
+    // Contar partidos jugados
+    const { data } = await db.from('jornadas').select('estado').eq('temporada', TEMPORADA).eq('estado','finalizado');
+    document.getElementById('st-jugados').innerText = data ? data.length : 0;
+
+    if (cfg.jornada_activa) {
+        await cargarPartidosJornada(cfg.jornada_activa);
+        document.getElementById('sel-jornada').value = cfg.jornada_activa;
+    }
+};
+
+async function cargarJornadas() {
+    const { data } = await db.from('jornadas')
+        .select('numero_jornada')
+        .eq('temporada', TEMPORADA)
+        .neq('estado','finalizado');
+
+    const nums = [...new Set((data||[]).map(r => r.numero_jornada))].sort((a,b)=>a-b);
+    const sel = document.getElementById('sel-jornada');
+    sel.innerHTML = '<option value="">— Seleccionar —</option>';
+    nums.forEach(n => sel.innerHTML += `<option value="${n}">Jornada ${n}</option>`);
+    sel.onchange = () => { if(sel.value) cargarPartidosJornada(+sel.value); };
+}
+
+async function cargarPartidosJornada(num) {
+    document.getElementById('j-num').innerText = num;
+    const { data } = await db.from('jornadas')
+        .select('*')
+        .eq('temporada', TEMPORADA)
+        .eq('numero_jornada', num)
+        .order('id');
+
+    partidos = data || [];
+    renderPartidos();
+
+    // Actualizar select de goles
+    const selP = document.getElementById('sel-partido-gol');
+    selP.innerHTML = partidos.map(p => `<option value="${p.id}">${p.equipo_local} vs ${p.equipo_visitante}</option>`).join('');
+}
+
+function renderPartidos() {
+    const grid = document.getElementById('partidos-grid');
+    if (!partidos.length) { grid.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);">Sin partidos</div>'; return; }
+
+    grid.innerHTML = partidos.map(p => {
+        const fin = p.estado === 'finalizado';
+        const vivo = p.estado === 'en_curso';
+        return `<div class="partido-row ${fin?'jugado':''} ${vivo?'en-vivo':''}">
+            <span style="text-align:right;font-weight:600;">${p.equipo_local}</span>
+            <span class="p-score">${fin||vivo ? `${p.goles_local??0} — ${p.goles_visitante??0}` : 'VS'}</span>
+            <span style="font-weight:600;">${p.equipo_visitante}</span>
+            <div class="p-actions">
+                ${!fin ? `
+                    <button class="btn-sm btn-sm-gol" onclick="golEnPartido('${p.id}','local','${p.equipo_local}')">L⚽</button>
+                    <button class="btn-sm btn-sm-gol" onclick="golEnPartido('${p.id}','visitante','${p.equipo_visitante}')">V⚽</button>
+                    <button class="btn-sm btn-sm-fin" onclick="finalizarPartido('${p.id}')">✓</button>
+                ` : '<span style="color:#2ecc71;font-size:11px;">FIN</span>'}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ─── ACTIVAR JORNADA (SIMULACIÓN EN VIVO) ─────────────────
+window.activarJornada = async function() {
+    const num = +document.getElementById('sel-jornada').value;
+    if (!num) { log('Selecciona una jornada', 'err'); return; }
+
+    if (simInterval) { clearInterval(simInterval); simInterval = null; }
+
+    log(`Activando Jornada ${num}...`, 'info');
+
+    // 1. Marcar todos los partidos como en_curso
+    await db.from('jornadas')
+        .update({ estado: 'en_curso' })
+        .eq('temporada', TEMPORADA)
+        .eq('numero_jornada', num);
+
+    // 2. Actualizar config_liga
+    await db.from('config_liga').update({
+        jornada_activa: num,
+        estado: 'en_vivo',
+        inicio_jornada: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    }).eq('id', 1);
+
+    await cargarEstado();
+    log(`✅ Jornada ${num} activada. Iniciando simulación minuto a minuto...`, 'ok');
+
+    minutoActual = 1;
+    document.getElementById('sim-progress').style.width = '0%';
+
+    // Cargar partidos de la jornada
+    await cargarPartidosJornada(num);
+
+    // Decidir eventos de goles para todos los partidos (pre-calculado)
+    const eventosPlaneados = planificarEventos(partidos);
+    log(`⚽ ${eventosPlaneados.length} eventos planeados para 90 minutos`, 'info');
+
+    // Simular minuto a minuto
+    simInterval = setInterval(async () => {
+        minutoActual++;
+        const pct = Math.round((minutoActual / 90) * 100);
+        document.getElementById('sim-progress').style.width = pct + '%';
+
+        // Insertar eventos que corresponden a este minuto
+        const eventosDeesteMinuto = eventosPlaneados.filter(e => e.minuto === minutoActual);
+        for (const ev of eventosDeesteMinuto) {
+            await db.from('eventos_partido').insert({
+                partido_id: ev.partido_id,
+                minuto: ev.minuto,
+                tipo: 'gol',
+                equipo: ev.equipo,
+                jugador: ev.jugador,
+                es_local: ev.es_local,
+                temporada: TEMPORADA
+            });
+
+            // Actualizar marcador en jornadas
+            const partido = partidos.find(p => p.id === ev.partido_id);
+            if (partido) {
+                if (ev.es_local) partido.goles_local = (partido.goles_local || 0) + 1;
+                else partido.goles_visitante = (partido.goles_visitante || 0) + 1;
+
+                await db.from('jornadas').update({
+                    goles_local: partido.goles_local,
+                    goles_visitante: partido.goles_visitante,
+                }).eq('id', partido.id);
+            }
+
+            log(`⚽ Min ${minutoActual}' — ${ev.jugador} (${ev.equipo})`, 'gol');
+            renderPartidos();
+        }
+
+        if (minutoActual >= 90) {
+            clearInterval(simInterval);
+            simInterval = null;
+            await finalizarTodosLosPartidos(num);
+        }
+    }, 2000); // 2 segundos = 1 minuto de juego → 90 min = ~3 min reales
+
+    document.getElementById('btn-activar').disabled = true;
+    setTimeout(() => document.getElementById('btn-activar').disabled = false, 185000);
+};
+
+// ─── PLANIFICAR EVENTOS ────────────────────────────────────
+function planificarEventos(ps) {
+    const eventos = [];
+    const pesos = [0.22,0.32,0.24,0.12,0.06,0.03,0.01];
+    const randGoles = () => {
+        const r = Math.random(); let a = 0;
+        for (let i = 0; i < pesos.length; i++) { a += pesos[i]; if (r < a) return i; }
+        return 0;
+    };
+
+    ps.forEach(p => {
+        const gl = randGoles(), gv = randGoles();
+
+        // Distribuir goles en minutos aleatorios
+        const minutesUsed = new Set();
+        const getMin = () => {
+            let m;
+            do { m = Math.floor(Math.random() * 88) + 2; } while (minutesUsed.has(m));
+            minutesUsed.add(m); return m;
+        };
+
+        for (let i = 0; i < gl; i++) {
+            const g = GOLEADORES[p.equipo_local] || ['Jugador'];
+            eventos.push({ partido_id: p.id, minuto: getMin(), equipo: p.equipo_local, jugador: g[Math.floor(Math.random()*g.length)], es_local: true });
+        }
+        for (let i = 0; i < gv; i++) {
+            const g = GOLEADORES[p.equipo_visitante] || ['Jugador'];
+            eventos.push({ partido_id: p.id, minuto: getMin(), equipo: p.equipo_visitante, jugador: g[Math.floor(Math.random()*g.length)], es_local: false });
+        }
+    });
+
+    return eventos.sort((a,b) => a.minuto - b.minuto);
+}
+
+// ─── FINALIZAR ─────────────────────────────────────────────
+async function finalizarTodosLosPartidos(num) {
+    log('Finalizando todos los partidos...', 'info');
+    for (const p of partidos) {
+        await db.from('jornadas').update({
+            estado: 'finalizado',
+            jugado_at: new Date().toISOString()
+        }).eq('id', p.id);
+    }
+    await db.from('config_liga').update({
+        estado: 'finalizado',
+        updated_at: new Date().toISOString()
+    }).eq('id', 1);
+
+    log(`✅ Jornada ${num} finalizada correctamente`, 'ok');
+    await cargarEstado();
+    renderPartidos();
+    document.getElementById('sim-progress').style.width = '100%';
+}
+
+window.marcarJornadaFinalizada = async function() {
+    if (!jornadaActiva?.jornada_activa) { log('No hay jornada activa','err'); return; }
+    if (simInterval) { clearInterval(simInterval); simInterval = null; }
+    await finalizarTodosLosPartidos(jornadaActiva.jornada_activa);
+};
+
+window.detenerJornada = async function() {
+    if (simInterval) { clearInterval(simInterval); simInterval = null; log('Simulación detenida','err'); }
+    await db.from('config_liga').update({ estado: 'esperando', updated_at: new Date().toISOString() }).eq('id',1);
+    await db.from('jornadas').update({ estado: 'pendiente' }).eq('temporada', TEMPORADA).eq('estado','en_curso');
+    log('Jornada detenida y reiniciada a pendiente','info');
+    await cargarEstado();
+};
+
+// ─── ACCIONES MANUALES ─────────────────────────────────────
+window.golEnPartido = async function(partidoId, lado, equipo) {
+    const p = partidos.find(x => x.id === partidoId);
+    if (!p) return;
+    const esLocal = lado === 'local';
+    const goleadores = GOLEADORES[equipo] || ['Jugador'];
+    const jugador = goleadores[Math.floor(Math.random()*goleadores.length)];
+    const min = minutoActual || Math.floor(Math.random()*88)+2;
+
+    await db.from('eventos_partido').insert({
+        partido_id: partidoId, minuto: min, tipo: 'gol',
+        equipo, jugador, es_local: esLocal, temporada: TEMPORADA
+    });
+
+    if (esLocal) p.goles_local = (p.goles_local||0)+1;
+    else p.goles_visitante = (p.goles_visitante||0)+1;
+
+    await db.from('jornadas').update({
+        goles_local: p.goles_local,
+        goles_visitante: p.goles_visitante,
+        estado: 'en_curso'
+    }).eq('id', partidoId);
+
+    log(`⚽ Gol manual: ${jugador} (${equipo}) min ${min}`, 'gol');
+    renderPartidos();
+};
+
+window.finalizarPartido = async function(partidoId) {
+    await db.from('jornadas').update({ estado:'finalizado', jugado_at: new Date().toISOString() }).eq('id', partidoId);
+    const p = partidos.find(x => x.id === partidoId);
+    if (p) p.estado = 'finalizado';
+    log(`✅ Partido finalizado: ${p?.equipo_local} vs ${p?.equipo_visitante}`, 'ok');
+    renderPartidos();
+};
+
+window.insertarGolManual = async function() {
+    const partidoId = document.getElementById('sel-partido-gol').value;
+    const lado = document.getElementById('sel-equipo-gol').value;
+    const p = partidos.find(x => x.id === partidoId);
+    if (!p) return;
+    await golEnPartido(partidoId, lado, lado === 'local' ? p.equipo_local : p.equipo_visitante);
+};
+
+// ─── LOG ───────────────────────────────────────────────────
+function log(msg, tipo = '') {
+    const el = document.getElementById('log');
+    const now = new Date().toLocaleTimeString('es-PE');
+    const d = document.createElement('div');
+    d.className = `log-entry ${tipo}`;
+    d.innerText = `[${now}] ${msg}`;
+    el.insertBefore(d, el.firstChild);
+}
+
+init();
+</script>
+</body>
+</html>
