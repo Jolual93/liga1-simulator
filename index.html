@@ -777,7 +777,7 @@ function switchTab(tab, mode) {
         if(tab!=='pos') renderStats(tab,'stats-body','stat-col-name');
     } else renderStats(tab,'stats-body-copa','stat-col-name-copa');
 }
-
+ 
 function renderStats(type, tbodyId, headerId) {
     let sorted = Object.values(globalStats).filter(s=>type==='gol'?s.goals>0:s.assists>0);
     sorted.sort((a,b)=>type==='gol'?b.goals-a.goals:b.assists-a.assists);
@@ -1897,3 +1897,4 @@ gameLoop();
 </script>
 </body>
 </html>
+
