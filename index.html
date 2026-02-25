@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liga 1 Simulator 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* FONDO ANIMADO */
+        .bg-field {
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 50% 110%, rgba(39,174,96,0.18) 0%, transparent 65%),
+                radial-gradient(ellipse at 50% -10%, rgba(52,152,219,0.10) 0%, transparent 60%),
+                #0a0a0a;
+            z-index: 0;
+        }
+
+        /* Líneas de campo en el fondo */
+        .field-lines {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            opacity: 0.04;
+            background-image:
+                linear-gradient(90deg, white 1px, transparent 1px),
+                linear-gradient(white 1px, transparent 1px);
+            background-size: 80px 80px;
+        }
+
+        .field-circle {
+            position: fixed;
+            width: 500px;
+            height: 500px;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+
+        /* PARTÍCULAS */
+        .particle {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            animation: floatUp linear infinite;
+            opacity: 0;
+        }
+        @keyframes floatUp {
+            0%   { transform: translateY(110vh) rotate(0deg);   opacity: 0; }
+            10%  { opacity: 0.6; }
+            90%  { opacity: 0.3; }
+            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* CONTENIDO */
+        .container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+            width: 100%;
+            max-width: 700px;
+            padding: 20px;
+        }
+
+        /* BADGE */
+        .badge {
+            background: rgba(241,196,15,0.15);
+            border: 1px solid rgba(241,196,15,0.4);
+            color: #f1c40f;
+            font-size: 12px;
+            font-family: 'Bebas Neue', sans-serif;
+            letter-spacing: 3px;
+            padding: 5px 18px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            animation: fadeInDown 0.6s ease both;
+        }
+
+        /* LOGO */
+        .logo-wrap {
+            text-align: center;
+            margin-bottom: 10px;
+            animation: fadeInDown 0.7s ease 0.1s both;
+        }
+        .logo-ball {
+            font-size: 72px;
+            display: block;
+            animation: ballBounce 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 30px rgba(241,196,15,0.5));
+        }
+        @keyframes ballBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50%       { transform: translateY(-12px) rotate(10deg); }
+        }
+
+        .title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(52px, 10vw, 90px);
+            letter-spacing: 6px;
+            line-height: 0.9;
+            background: linear-gradient(135deg, #f1c40f 0%, #e67e22 50%, #f1c40f 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s linear infinite, fadeInDown 0.8s ease 0.15s both;
+        }
+        @keyframes shimmer {
+            0%   { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .subtitle {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 8px;
+            color: rgba(255,255,255,0.35);
+            margin-top: 4px;
+            animation: fadeInDown 0.8s ease 0.2s both;
+        }
+
+        /* DIVISOR */
+        .divider {
+            width: 120px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f1c40f, transparent);
+            margin: 24px 0;
+            animation: fadeIn 0.8s ease 0.3s both;
+        }
+
+        /* CARDS DE MODO */
+        .modes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            animation: fadeInUp 0.8s ease 0.4s both;
+        }
+
+        .mode-card {
+            background: rgba(255,255,255,0.03);
+            border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+            padding: 32px 24px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            border-radius: 18px;
+        }
+
+        .mode-card:hover {
+            transform: translateY(-6px) scale(1.02);
+        }
+
+        /* OFFLINE */
+        .mode-offline {
+            border-color: rgba(46,204,113,0.3);
+        }
+        .mode-offline::before {
+            background: radial-gradient(ellipse at top, rgba(46,204,113,0.12) 0%, transparent 70%);
+        }
+        .mode-offline:hover {
+            border-color: #2ecc71;
+            box-shadow: 0 0 40px rgba(46,204,113,0.25), 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .mode-offline:hover::before { opacity: 1; }
+
+        /* ONLINE */
+        .mode-online {
+            border-color: rgba(52,152,219,0.3);
+        }
+        .mode-online::before {
+            background: radial-gradient(ellipse at top, rgba(52,152,219,0.12) 0%, transparent 70%);
+        }
+        .mode-online:hover {
+            border-color: #3498db;
+            box-shadow: 0 0 40px rgba(52,152,219,0.25), 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .mode-online:hover::before { opacity: 1; }
+
+        .mode-icon {
+            font-size: 52px;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+            transition: transform 0.3s ease;
+        }
+        .mode-card:hover .mode-icon {
+            transform: scale(1.15) rotate(-5deg);
+        }
+
+        .mode-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px;
+            letter-spacing: 3px;
+        }
+        .mode-offline .mode-name { color: #2ecc71; }
+        .mode-online  .mode-name { color: #3498db; }
+
+        .mode-desc {
+            font-size: 13px;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .mode-tag {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .tag-available {
+            background: rgba(46,204,113,0.15);
+            border: 1px solid rgba(46,204,113,0.4);
+            color: #2ecc71;
+        }
+        .tag-soon {
+            background: rgba(52,152,219,0.15);
+            border: 1px solid rgba(52,152,219,0.4);
+            color: #3498db;
+        }
+
+        .mode-arrow {
+            position: absolute;
+            bottom: 16px;
+            right: 20px;
+            font-size: 18px;
+            opacity: 0;
+            transform: translateX(-8px);
+            transition: all 0.3s ease;
+        }
+        .mode-card:hover .mode-arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* FEATURES LIST */
+        .features {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 24px;
+            animation: fadeInUp 0.8s ease 0.5s both;
+        }
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.4);
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.02);
+        }
+        .feature-icon { font-size: 15px; }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 32px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 2px;
+            font-family: 'Bebas Neue', sans-serif;
+            animation: fadeIn 1s ease 0.8s both;
+        }
+
+        /* MODAL ONLINE PRÓXIMAMENTE */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: #111;
+            border: 2px solid #3498db;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(52,152,219,0.3);
+            animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @keyframes popIn {
+            from { transform: scale(0.7); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        .modal-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            color: #3498db;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+        .modal-desc {
+            color: rgba(255,255,255,0.6);
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        .roadmap {
+            text-align: left;
+            background: rgba(52,152,219,0.06);
+            border: 1px solid rgba(52,152,219,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        .roadmap-title {
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: #3498db;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        .roadmap-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .roadmap-item:last-child { border-bottom: none; }
+        .step-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: rgba(52,152,219,0.2);
+            border: 1px solid #3498db;
+            color: #3498db;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .modal-close {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .modal-close:hover { background: #2980b9; transform: translateY(-1px); }
+
+        @keyframes fadeInDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeInUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeIn     { from { opacity:0; } to { opacity:1; } }
+    </style>
+</head>
+<body>
+
+<!-- FONDO -->
+<div class="bg-field"></div>
+<div class="field-lines"></div>
+<div class="field-circle"></div>
+
+<!-- MODAL ONLINE -->
+<div class="modal-overlay" id="modal-online" onclick="cerrarModal(event)">
+    <div class="modal-box">
+        <div class="modal-title">🌐 Modo Online</div>
+        <p class="modal-desc">
+            El modo multijugador está en construcción.<br>
+            Pronto podrás competir contra otros managers en una liga global.
+        </p>
+        <div class="roadmap">
+            <div class="roadmap-title">🗺️ Lo que viene</div>
+            <div class="roadmap-item"><div class="step-num">1</div>Login y registro de usuarios</div>
+            <div class="roadmap-item"><div class="step-num">2</div>Crear tu equipo con nombre y colores</div>
+            <div class="roadmap-item"><div class="step-num">3</div>Mercado de fichajes global</div>
+            <div class="roadmap-item"><div class="step-num">4</div>Jornadas automáticas cada 24h</div>
+            <div class="roadmap-item"><div class="step-num">5</div>Tabla de posiciones global en vivo</div>
+        </div>
+        <button class="modal-close" onclick="cerrarModal()">Entendido — volver al inicio</button>
+    </div>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="container">
+    <div class="badge">⚽ TEMPORADA 2026</div>
+
+    <div class="logo-wrap">
+        <span class="logo-ball">⚽</span>
+        <div class="title">LIGA 1</div>
+        <div class="subtitle">SIMULATOR</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="modes">
+        <!-- OFFLINE -->
+        <a class="mode-card mode-offline" href="liga1_v3.html">
+            <span class="mode-icon">🎮</span>
+            <span class="mode-name">Solo</span>
+            <p class="mode-desc">Juega contra la IA, gestiona tu equipo y conquista la Liga 1.</p>
+            <span class="mode-tag tag-available">✓ Disponible</span>
+            <span class="mode-arrow">→</span>
+        </a>
+
+        <!-- ONLINE -->
+        <div class="mode-card mode-online" onclick="abrirModal()">
+            <span class="mode-icon">🌐</span>
+            <span class="mode-name">Online</span>
+            <p class="mode-desc">Compite contra otros managers en una liga global con jornadas en vivo.</p>
+            <span class="mode-tag tag-soon">🔧 En construcción</span>
+            <span class="mode-arrow">→</span>
+        </div>
+    </div>
+
+    <div class="features">
+        <div class="feature"><span class="feature-icon">🏆</span> Liga 1 oficial — 18 equipos</div>
+        <div class="feature"><span class="feature-icon">👥</span> Rosters reales 2026</div>
+        <div class="feature"><span class="feature-icon">🛒</span> Mercado de fichajes</div>
+        <div class="feature"><span class="feature-icon">⚽</span> Tiros penales animados</div>
+        <div class="feature"><span class="feature-icon">🏅</span> Copa y Liga</div>
+        <div class="feature"><span class="feature-icon">💾</span> Guarda tu plantilla</div>
+    </div>
+
+    <div class="footer">Liga 1 Simulator · 2026 Edition</div>
+</div>
+
+<script>
+    // Partículas de fondo
+    const colors = ['#f1c40f','#2ecc71','#3498db','#e74c3c','#9b59b6'];
+    for (let i = 0; i < 25; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 6 + 2;
+        p.style.cssText = `
+            width:${size}px; height:${size}px;
+            left:${Math.random()*100}%;
+            background:${colors[Math.floor(Math.random()*colors.length)]};
+            animation-duration:${Math.random()*12+8}s;
+            animation-delay:${Math.random()*8}s;
+        `;
+        document.body.appendChild(p);
+    }
+
+    function abrirModal() {
+        document.getElementById('modal-online').classList.add('open');
+    }
+    function cerrarModal(e) {
+        if (!e || e.target === document.getElementById('modal-online')) {
+            document.getElementById('modal-online').classList.remove('open');
+        }
+    }
+</script>
+</body>
+</html>
