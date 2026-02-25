@@ -245,7 +245,7 @@
             <option value="4-2-3-1">4-2-3-1 Equilibrada</option>
             <option value="5-3-2">5-3-2 Defensiva</option>
         </select>
-        <div class="coins">🪙 <span id="coins">100</span><button class="cheat-btn" onclick="addCoins()">+</button></div>
+        <div class="coins">🪙 <span id="coins">100</span><button class="cheat-btn" onclick="pedirCodigo()">🔑</button></div>
         <button class="btn" id="sound-btn" onclick="initSound()" style="background:#8e44ad;">🔇 Sonido</button>
         <button class="btn" onclick="abrirMercado()">🛒 Mercado</button>
     </div>
@@ -426,7 +426,8 @@ let tournamentFormat = 'liga', leagueTeams = [], leagueSchedule = [], tournament
 let myTeamData = null;
 let currentMatchState = {myTeamIsHome:true, enemyData:null, actualMyColor:'', actualEnemyColor:''};
 let currentFormation = "4-4-2";
-let primerPartido = true; // Pedir formación antes del primer partido
+let primerPartido = true;
+let simulandoCopa = false; // evita doble simulacion // Pedir formación antes del primer partido
 let pendingSquadLoad = null; // plantilla pendiente de cargar
 
 let state = {
@@ -830,7 +831,12 @@ function mejorarEquipoRival(idx) {
 }
 
 function simularRestoYAvanzar() {
-    if(tournamentFormat==='liga') simularLiga(); else simularCopa();
+    if(tournamentFormat==='liga') simularLiga();
+    else {
+        if(simulandoCopa) return; // evitar doble llamada
+        simulandoCopa = true;
+        simularCopa();
+    }
 }
 
 function simularLiga() {
@@ -858,15 +864,24 @@ function simularLiga() {
 function simularCopa() {
     let current=tournamentBracket[currentMatchday],next=[],res=`RESULTADOS ${document.getElementById('round-title-copa').innerText}:\n\n`;
     for(let m of current){
+        // GUARD: no simular dos veces el mismo partido
+        if(m.played) {
+            let penStr=m.penScoreHome!==undefined?` (pen: ${m.penScoreHome}-${m.penScoreAway})`:'';
+            res+=`[${m.scoreHome}] ${m.home.name} — ${m.away.name} [${m.scoreAway}]${penStr}\n`;
+            continue;
+        }
         if(!m.isPlayerMatch){
-            let r=simularMarcadorIA(m.home,m.away);m.scoreHome=r.h;m.scoreAway=r.a;
-            // Empate IA vs IA: definir por penales simulados (aleatorio simple, sin loop)
+            let r=simularMarcadorIA(m.home,m.away);
+            m.scoreHome=r.h; m.scoreAway=r.a;
+            m.penScoreHome=undefined; m.penScoreAway=undefined;
             if(m.scoreHome===m.scoreAway){
+                // Penales IA: aleatorio simple sin acumulacion
                 m.winner=Math.random()>.5?m.home:m.away;
-                let penH=Math.floor(Math.random()*3)+3, penA=Math.floor(Math.random()*3)+2;
-                if(penH===penA)penA--;
-                m.penScoreHome=penH; m.penScoreAway=penA;
-                if(m.winner===m.away){let t=penH;penH=penA;penA=t;}
+                let penH=Math.floor(Math.random()*3)+3;
+                let penA=penH - (Math.floor(Math.random()*2)+1);
+                if(penA<0)penA=0;
+                m.penScoreHome=m.winner===m.home?penH:penA;
+                m.penScoreAway=m.winner===m.away?penH:penA;
             } else {
                 m.winner=m.scoreHome>m.scoreAway?m.home:m.away;
             }
@@ -877,17 +892,18 @@ function simularCopa() {
         } else {
             m.scoreHome=currentMatchState.myTeamIsHome?state.golesAzul:state.golesRojo;
             m.scoreAway=currentMatchState.myTeamIsHome?state.golesRojo:state.golesAzul;
-            // Empate del jugador: ya fue resuelto por penales animados antes de llamar aqui
+            m.penScoreHome=undefined; m.penScoreAway=undefined;
             m.winner=m.scoreHome>m.scoreAway?m.home:(m.scoreAway>m.scoreHome?m.away:(state.golesAzul>state.golesRojo?m.home:m.away));
         }
         m.played=true;
-        let penStr=m.penScoreHome!==undefined?` (pen: ${m.penScoreHome}-${m.penScoreAway})`:''; res+=`[${m.scoreHome}] ${m.home.name} — ${m.away.name} [${m.scoreAway}]${penStr}\n`;
+        let penStr=m.penScoreHome!==undefined?` (pen: ${m.penScoreHome}-${m.penScoreAway})`:'';
+        res+=`[${m.scoreHome}] ${m.home.name} — ${m.away.name} [${m.scoreAway}]${penStr}\n`;
     }
     for(let i=0;i<current.length;i+=2){let m1=current[i],m2=current[i+1];if(m2)next.push({home:m1.winner,away:m2.winner,isPlayerMatch:(m1.winner===myTeamData||m2.winner===myTeamData),played:false});}
     let myPrev=current.find(m=>m.isPlayerMatch);
     mostrarAlerta('Resumen de Ronda',res,()=>{
         if(myPrev.winner!==myTeamData){mostrarAlerta('¡ELIMINADO!','Tu equipo fue eliminado de la Copa.',()=>location.reload());}
-        else if(next.length>0){tournamentBracket.push(next);currentMatchday++;mostrarBracketCopa();}
+        else if(next.length>0){simulandoCopa=false;tournamentBracket.push(next);currentMatchday++;mostrarBracketCopa();}
         else {
             let ts=Object.values(globalStats).filter(s=>s.goals>0).sort((a,b)=>b.goals-a.goals)[0];
             document.getElementById('awards-grid').innerHTML=`<div class="award-card" style="grid-column:1/-1"><span class="award-icon">🏆</span><div class="award-title">Campeón de la Copa</div><div class="award-winner" style="color:${myTeamData.c1}">${myTeamData.name}</div></div><div class="award-card" style="grid-column:1/-1"><span class="award-icon">⚽</span><div class="award-title">Goleador</div><div class="award-winner">${ts?ts.name:'—'}</div><div class="award-value">${ts?ts.goals+' goles':''}</div></div>`;
@@ -1458,7 +1474,19 @@ function playGoal(){if(!soundEnabled)return;const buf=audioCtx.createBuffer(1,au
 // ============================================================
 function mostrarAlerta(t,m,cb=null){state.pausado=true;document.getElementById('message-title').innerText=t;document.getElementById('message-text').innerText=m;let c=document.getElementById('message-buttons');c.innerHTML='';let b=document.createElement('button');b.className='btn';b.innerText='Entendido';b.onclick=()=>{document.getElementById('message-modal').style.display='none';state.pausado=false;if(cb)cb();};c.appendChild(b);document.getElementById('message-modal').style.display='block';}
 function mostrarConfirmacion(t,m,ok,cancel){state.pausado=true;document.getElementById('message-title').innerText=t;document.getElementById('message-text').innerText=m;let c=document.getElementById('message-buttons');c.innerHTML='';let bN=document.createElement('button');bN.className='btn';bN.style.background='var(--red)';bN.innerText='Cancelar';bN.onclick=()=>{document.getElementById('message-modal').style.display='none';state.pausado=false;if(cancel)cancel();};let bY=document.createElement('button');bY.className='btn';bY.innerText='Sí, continuar';bY.onclick=()=>{document.getElementById('message-modal').style.display='none';if(ok)ok();};c.appendChild(bN);c.appendChild(bY);document.getElementById('message-modal').style.display='block';}
-function addCoins(){state.monedas+=500;coinsEl.innerText=state.monedas;playCoin();coinsEl.style.color='#fff';setTimeout(()=>coinsEl.style.color='#f1c40f',200);}
+function pedirCodigo(){
+    let codigo = prompt('Introduce el código de desarrollador:');
+    if(codigo && codigo.toUpperCase() === 'JOLUAL'){
+        state.monedas += 1000;
+        coinsEl.innerText = state.monedas;
+        playCoin();
+        coinsEl.style.color='#fff';
+        setTimeout(()=>coinsEl.style.color='#f1c40f', 200);
+        alert('✅ +1000 monedas añadidas.');
+    } else if(codigo !== null) {
+        alert('❌ Código incorrecto.');
+    }
+}
 
 function cambiarFormacion(nombre){
     mostrarConfirmacion('Cambio de Táctica',`Cambiar a ${nombre} reiniciará posiciones y reembolsará fichajes.\n\n¿Continuar?`,()=>{
