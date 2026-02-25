@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liga 1 Simulator — Mi Equipo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0d0d0d;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            padding: 14px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-logo {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #f1c40f, #e67e22);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+        }
+        .btn-logout {
+            background: rgba(231,76,60,0.15);
+            border: 1px solid rgba(231,76,60,0.3);
+            color: #e74c3c;
+            padding: 7px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            transition: 0.2s;
+        }
+        .btn-logout:hover { background: rgba(231,76,60,0.25); }
+
+        /* MAIN */
+        main {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 32px 20px;
+        }
+
+        /* BIENVENIDA */
+        .welcome-banner {
+            background: linear-gradient(135deg, rgba(241,196,15,0.08), rgba(230,126,34,0.05));
+            border: 1px solid rgba(241,196,15,0.2);
+            border-radius: 16px;
+            padding: 24px 28px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .welcome-text h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 32px;
+            letter-spacing: 3px;
+            color: #f1c40f;
+        }
+        .welcome-text p { font-size: 14px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+        .coins-display {
+            background: rgba(241,196,15,0.1);
+            border: 1px solid rgba(241,196,15,0.3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            color: #f1c40f;
+            letter-spacing: 2px;
+        }
+
+        /* GRID */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        /* CARDS */
+        .card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 16px;
+            padding: 24px;
+        }
+        .card-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 2px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* FORM EQUIPO */
+        .form-row { margin-bottom: 14px; }
+        label { display: block; font-size: 12px; color: rgba(255,255,255,0.4); margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase; }
+        input[type="text"] {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+        input[type="text"]:focus { border-color: #f1c40f; }
+        .color-row { display: flex; gap: 12px; align-items: center; }
+        .color-swatch {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .color-swatch input[type="color"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        select {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .btn-save {
+            background: #f1c40f;
+            color: #000;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 10px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 18px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+            margin-top: 6px;
+        }
+        .btn-save:hover { background: #f39c12; transform: translateY(-1px); }
+
+        /* PREVIEW EQUIPO */
+        .team-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 0;
+        }
+        .preview-shield {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            transition: 0.3s;
+        }
+        .preview-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+        .preview-formation {
+            font-size: 13px;
+            color: rgba(255,255,255,0.4);
+            background: rgba(255,255,255,0.05);
+            padding: 5px 14px;
+            border-radius: 20px;
+        }
+
+        /* PRÓXIMO PARTIDO */
+        .next-match {
+            text-align: center;
+            padding: 20px;
+            background: rgba(52,152,219,0.05);
+            border: 1px solid rgba(52,152,219,0.15);
+            border-radius: 12px;
+        }
+        .next-match-label { font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-bottom: 10px; }
+        .next-match-teams { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: #3498db; }
+        .next-match-time { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 6px; }
+
+        /* TABLA */
+        .tabla-mini { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .tabla-mini th { background: rgba(241,196,15,0.1); color: #f1c40f; padding: 8px; text-align: left; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; font-size: 12px; }
+        .tabla-mini td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .tabla-mini tr:last-child td { border-bottom: none; }
+        .my-row td { color: #f1c40f; font-weight: 700; }
+        .color-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+        /* MSG */
+        .save-msg { font-size: 13px; text-align: center; margin-top: 10px; padding: 8px; border-radius: 8px; display: none; }
+        .save-msg.ok { background: rgba(46,204,113,0.15); color: #2ecc71; display: block; }
+        .save-msg.err { background: rgba(231,76,60,0.15); color: #e74c3c; display: block; }
+
+        .loading { text-align: center; padding: 40px; color: rgba(255,255,255,0.3); font-size: 18px; }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            .welcome-banner { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-logo">⚽ LIGA 1 SIMULATOR</div>
+    <div class="header-user">
+        <span id="header-manager">Cargando...</span>
+        <button class="btn-logout" onclick="cerrarSesion()">Salir</button>
+    </div>
+</header>
+
+<main>
+    <div id="loading" class="loading">⏳ Cargando tu equipo...</div>
+    <div id="contenido" style="display:none;">
+
+        <!-- BIENVENIDA -->
+        <div class="welcome-banner">
+            <div class="welcome-text">
+                <h1 id="bienvenida-titulo">¡Hola, Manager!</h1>
+                <p>Gestiona tu equipo y prepárate para la próxima jornada</p>
+            </div>
+            <div class="coins-display">🪙 <span id="monedas-display">500</span></div>
+        </div>
+
+        <div class="grid">
+
+            <!-- CONFIGURAR EQUIPO -->
+            <div class="card">
+                <div class="card-title">🛡️ Mi Equipo</div>
+
+                <div class="form-row">
+                    <label>Nombre del equipo</label>
+                    <input type="text" id="eq-nombre" placeholder="Ej: Los Cóndores FC" maxlength="20">
+                </div>
+
+                <div class="form-row">
+                    <label>Equipo base (roster de jugadores)</label>
+                    <select id="eq-base">
+                        <option value="u">Universitario</option>
+                        <option value="al">Alianza Lima</option>
+                        <option value="sc">Sporting Cristal</option>
+                        <option value="mel">FBC Melgar</option>
+                        <option value="cus">Cusco FC</option>
+                        <option value="cie">Cienciano</option>
+                        <option value="gra">Atlético Grau</option>
+                        <option value="shu">Sport Huancayo</option>
+                        <option value="adt">ADT de Tarma</option>
+                        <option value="sba">Sport Boys</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label>Formación</label>
+                    <select id="eq-formacion">
+                        <option value="4-4-2">4-4-2 Clásica</option>
+                        <option value="4-3-3">4-3-3 Ofensiva</option>
+                        <option value="3-5-2">3-5-2 Posesión</option>
+                        <option value="4-2-3-1">4-2-3-1 Equilibrada</option>
+                        <option value="5-3-2">5-3-2 Defensiva</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <label>Colores</label>
+                    <div class="color-row">
+                        <div>
+                            <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:4px;">Principal</div>
+                            <div class="color-swatch" id="swatch1">
+                                <input type="color" id="eq-color1" value="#3498db" oninput="actualizarPreview()">
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:4px;">Secundario</div>
+                            <div class="color-swatch" id="swatch2">
+                                <input type="color" id="eq-color2" value="#ffffff" oninput="actualizarPreview()">
+                            </div>
+                        </div>
+                        <div style="flex:1;font-size:12px;color:rgba(255,255,255,.3);padding-left:8px;">
+                            Haz clic en el color para cambiarlo
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-save" onclick="guardarEquipo()">💾 Guardar Equipo</button>
+                <div class="save-msg" id="save-msg"></div>
+            </div>
+
+            <!-- PREVIEW + PRÓXIMO PARTIDO -->
+            <div style="display:flex;flex-direction:column;gap:20px;">
+
+                <div class="card">
+                    <div class="card-title">👁️ Vista Previa</div>
+                    <div class="team-preview">
+                        <div class="preview-shield" id="preview-shield" style="background:#3498db;">⚽</div>
+                        <div class="preview-name" id="preview-name">Mi Equipo FC</div>
+                        <div class="preview-formation" id="preview-formation">4-4-2</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📅 Liga Online</div>
+                    <div class="next-match">
+                        <div class="next-match-label">Estado</div>
+                        <div class="next-match-teams" style="color:#f1c40f;font-size:16px;">🔧 En preparación</div>
+                        <div class="next-match-time">Las jornadas comenzarán cuando haya suficientes managers registrados</div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div><!-- fin contenido -->
+</main>
+
+<script>
+    const SUPABASE_URL = 'https://hpvpxadhbftiulwmysaw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa';
+    const _supa = window.supabase || window.Supabase;
+    const createClient = _supa.createClient || _supa.default?.createClient;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let equipoId = null;
+
+    // Verificar sesión al cargar
+    async function init() {
+        const { data: { session } } = await db.auth.getSession();
+        if (!session) {
+            window.location.href = 'login.html';
+            return;
+        }
+        currentUser = session.user;
+        const nombre = currentUser.user_metadata?.nombre_manager || currentUser.email.split('@')[0];
+        document.getElementById('header-manager').innerText = '👤 ' + nombre;
+        document.getElementById('bienvenida-titulo').innerText = '¡Hola, ' + nombre + '!';
+
+        await cargarEquipo();
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('contenido').style.display = 'block';
+    }
+
+    async function cargarEquipo() {
+        const { data, error } = await supabase
+            .from('equipos')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .single();
+
+        if (data) {
+            equipoId = data.id;
+            document.getElementById('eq-nombre').value    = data.nombre;
+            document.getElementById('eq-base').value      = data.equipo_base;
+            document.getElementById('eq-formacion').value = data.formacion;
+            document.getElementById('eq-color1').value    = data.color1;
+            document.getElementById('eq-color2').value    = data.color2;
+            document.getElementById('monedas-display').innerText = data.monedas;
+            actualizarPreview();
+        }
+    }
+
+    function actualizarPreview() {
+        const nombre   = document.getElementById('eq-nombre').value || 'Mi Equipo FC';
+        const color1   = document.getElementById('eq-color1').value;
+        const color2   = document.getElementById('eq-color2').value;
+        const formacion = document.getElementById('eq-formacion').value;
+
+        document.getElementById('preview-shield').style.background = color1;
+        document.getElementById('preview-shield').style.color = color2;
+        document.getElementById('preview-name').innerText = nombre;
+        document.getElementById('preview-formation').innerText = formacion;
+        document.getElementById('swatch1').style.background = color1;
+        document.getElementById('swatch2').style.background = color2;
+    }
+
+    async function guardarEquipo() {
+        const datos = {
+            nombre:      document.getElementById('eq-nombre').value.trim() || 'Mi Equipo FC',
+            equipo_base: document.getElementById('eq-base').value,
+            formacion:   document.getElementById('eq-formacion').value,
+            color1:      document.getElementById('eq-color1').value,
+            color2:      document.getElementById('eq-color2').value,
+        };
+
+        let error;
+        if (equipoId) {
+            ({ error } = await db.from('equipos').update(datos).eq('id', equipoId));
+        } else {
+            const { data, error: err } = await db.from('equipos').insert({ ...datos, user_id: currentUser.id, monedas: 500 }).select().single();
+            error = err;
+            if (data) equipoId = data.id;
+        }
+
+        const msg = document.getElementById('save-msg');
+        if (error) {
+            msg.className = 'save-msg err';
+            msg.innerText = '❌ Error al guardar: ' + error.message;
+        } else {
+            msg.className = 'save-msg ok';
+            msg.innerText = '✅ ¡Equipo guardado!';
+            actualizarPreview();
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+    }
+
+    async function cerrarSesion() {
+        await db.auth.signOut();
+        window.location.href = 'index.html';
+    }
+
+    // Actualizar preview en tiempo real
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('eq-nombre').addEventListener('input', actualizarPreview);
+        document.getElementById('eq-formacion').addEventListener('change', actualizarPreview);
+    });
+
+    init();
+</script>
+</body>
+</html>

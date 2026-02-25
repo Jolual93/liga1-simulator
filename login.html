@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liga 1 Simulator — Iniciar Sesión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0a0a0a;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .bg { position:fixed; inset:0; background: radial-gradient(ellipse at 50% 100%, rgba(39,174,96,0.15) 0%, transparent 60%), #0a0a0a; z-index:0; }
+
+        .card {
+            position: relative;
+            z-index: 10;
+            background: rgba(255,255,255,0.03);
+            border: 2px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .logo-ball { font-size: 48px; display: block; margin-bottom: 8px; }
+        .logo-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 36px;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #f1c40f, #e67e22);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .logo-sub { font-size: 12px; color: rgba(255,255,255,0.3); letter-spacing: 3px; font-family: 'Bebas Neue', sans-serif; }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 28px;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: rgba(255,255,255,0.4);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .tab.active {
+            background: #f1c40f;
+            color: #000;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
+        input {
+            width: 100%;
+            background: rgba(255,255,255,0.06);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 13px 16px;
+            color: white;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            outline: none;
+            transition: 0.2s;
+        }
+        input:focus { border-color: #f1c40f; background: rgba(241,196,15,0.05); }
+        input::placeholder { color: rgba(255,255,255,0.2); }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #f1c40f, #e67e22);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 22px;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 8px;
+        }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(241,196,15,0.3); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .msg {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+        .msg.error { background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; }
+        .msg.success { background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.3); color: #2ecc71; }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255,255,255,0.3);
+            font-size: 13px;
+            text-decoration: none;
+            transition: 0.2s;
+        }
+        .back-link:hover { color: rgba(255,255,255,0.6); }
+
+        /* Campo nombre (solo en registro) */
+        #field-nombre { display: none; }
+    </style>
+</head>
+<body>
+<div class="bg"></div>
+
+<div class="card">
+    <div class="logo">
+        <span class="logo-ball">⚽</span>
+        <div class="logo-title">LIGA 1</div>
+        <div class="logo-sub">Simulator Online</div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="switchTab('login')">Iniciar Sesión</button>
+        <button class="tab" id="tab-registro" onclick="switchTab('registro')">Registrarse</button>
+    </div>
+
+    <div class="form-group" id="field-nombre">
+        <label>Tu nombre de manager</label>
+        <input type="text" id="input-nombre" placeholder="Ej: ElCholoPeruano" maxlength="20">
+    </div>
+
+    <div class="form-group">
+        <label>Correo electrónico</label>
+        <input type="email" id="input-email" placeholder="tucorreo@gmail.com">
+    </div>
+
+    <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="input-password" placeholder="Mínimo 6 caracteres">
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="handleSubmit()">ENTRAR</button>
+
+    <div class="msg" id="msg"></div>
+
+    <a href="index.html" class="back-link">← Volver al inicio</a>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://hpvpxadhbftiulwmysaw.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa';
+    // Compatibilidad con distintas versiones UMD de Supabase
+    const _supa = window.supabase || window.Supabase;
+    const createClient = _supa.createClient || _supa.default?.createClient;
+    const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let modo = 'login';
+
+    // Si ya hay sesión, redirigir al dashboard
+    supabase.auth.getSession().then(({ data }) => {
+        if (data.session) window.location.href = 'dashboard.html';
+    });
+
+    function switchTab(t) {
+        modo = t;
+        document.getElementById('tab-login').classList.toggle('active', t === 'login');
+        document.getElementById('tab-registro').classList.toggle('active', t === 'registro');
+        document.getElementById('field-nombre').style.display = t === 'registro' ? 'block' : 'none';
+        document.getElementById('btn-submit').innerText = t === 'login' ? 'ENTRAR' : 'CREAR CUENTA';
+        ocultarMsg();
+    }
+
+    function mostrarMsg(texto, tipo) {
+        const el = document.getElementById('msg');
+        el.innerText = texto;
+        el.className = 'msg ' + tipo;
+        el.style.display = 'block';
+    }
+    function ocultarMsg() {
+        document.getElementById('msg').style.display = 'none';
+    }
+
+    async function handleSubmit() {
+        const email    = document.getElementById('input-email').value.trim();
+        const password = document.getElementById('input-password').value;
+        const nombre   = document.getElementById('input-nombre').value.trim();
+        const btn      = document.getElementById('btn-submit');
+
+        if (!email || !password) { mostrarMsg('Completa todos los campos.', 'error'); return; }
+        if (modo === 'registro' && !nombre) { mostrarMsg('Escribe tu nombre de manager.', 'error'); return; }
+        if (password.length < 6) { mostrarMsg('La contraseña debe tener al menos 6 caracteres.', 'error'); return; }
+
+        btn.disabled = true;
+        btn.innerText = '...';
+
+        if (modo === 'login') {
+            const { data, error } = await db.auth.signInWithPassword({ email, password });
+            if (error) {
+                mostrarMsg('Correo o contraseña incorrectos.', 'error');
+                btn.disabled = false;
+                btn.innerText = 'ENTRAR';
+            } else {
+                mostrarMsg('¡Bienvenido de vuelta! Entrando...', 'success');
+                setTimeout(() => window.location.href = 'dashboard.html', 1000);
+            }
+        } else {
+            const { data, error } = await db.auth.signUp({
+                email, password,
+                options: { data: { nombre_manager: nombre } }
+            });
+            if (error) {
+                mostrarMsg('Error: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerText = 'CREAR CUENTA';
+            } else {
+                // Crear equipo inicial en la base de datos
+                const userId = data.user?.id;
+                if (userId) {
+                    await db.from('equipos').insert({
+                        user_id: userId,
+                        nombre: nombre + ' FC',
+                        color1: '#3498db',
+                        color2: '#ffffff',
+                        monedas: 500,
+                        equipo_base: 'u'
+                    });
+                }
+                mostrarMsg('¡Cuenta creada! Revisa tu correo para confirmar.', 'success');
+                btn.disabled = false;
+                btn.innerText = 'CREAR CUENTA';
+            }
+        }
+    }
+
+    // Enter para enviar
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSubmit(); });
+</script>
+</body>
+</html>
