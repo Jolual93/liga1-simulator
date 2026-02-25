@@ -124,6 +124,16 @@
         .formacion-opt{background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:10px;color:white;padding:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;transition:0.2s;width:100%;}
         .formacion-opt:hover{border-color:#f1c40f;background:rgba(241,196,15,0.1);color:#f1c40f;transform:translateX(4px);}
         .formacion-opt.selected{border-color:#f1c40f;background:rgba(241,196,15,0.15);color:#f1c40f;}
+        .squad-slot{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.08);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:13px;}
+        .squad-slot.filled{border-color:rgba(241,196,15,.3);}
+        .squad-slot.empty{opacity:.5;border-style:dashed;}
+        .squad-slot-name{flex:1;font-weight:700;color:var(--gold);}
+        .squad-slot-info{font-size:11px;color:rgba(255,255,255,.4);}
+        .squad-slot-btns{display:flex;gap:5px;}
+        .sqbtn{border:none;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:700;font-family:'Rajdhani',sans-serif;}
+        .sqbtn-load{background:#27ae60;color:white;} .sqbtn-load:hover{background:#2ecc71;}
+        .sqbtn-del{background:#c0392b;color:white;} .sqbtn-del:hover{background:#e74c3c;}
+        .sqbtn-save{background:rgba(241,196,15,.15);border:1px solid var(--gold);color:var(--gold);} .sqbtn-save:hover{background:rgba(241,196,15,.3);}
         /* REASIGNACION */
         #reasign-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3000;align-items:center;justify-content:center;}
         .reasign-box{background:#1a2535;border:3px solid var(--gold);border-radius:18px;padding:24px;width:720px;max-width:98vw;max-height:95vh;overflow-y:auto;}
@@ -223,14 +233,10 @@
             Color Principal: <input type="color" id="custom-color1" value="#3498db" style="cursor:pointer;"><br><br>
             Color Secundario: <input type="color" id="custom-color2" value="#ffffff" style="cursor:pointer;">
         </div>
-        <!-- CARGA PLANTILLA -->
-        <div id="load-squad-banner" style="display:none;background:rgba(241,196,15,.1);border:2px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:15px;">
-            <div style="font-size:15px;color:var(--gold);font-weight:bold;margin-bottom:6px;">💾 Plantilla guardada encontrada</div>
-            <div id="load-squad-info" style="font-size:13px;color:#bdc3c7;margin-bottom:10px;"></div>
-            <div style="display:flex;gap:10px;justify-content:center;">
-                <button class="btn" onclick="cargarPlantilla()">✅ Cargar plantilla</button>
-                <button class="btn" style="background:#7f8c8d;" onclick="ignorarPlantilla()">❌ Ignorar</button>
-            </div>
+        <!-- ALINEACIONES GUARDADAS -->
+        <div id="load-squad-banner" style="background:rgba(241,196,15,.08);border:2px solid rgba(241,196,15,.3);border-radius:12px;padding:14px;margin-bottom:15px;">
+            <div style="font-size:15px;color:var(--gold);font-weight:bold;margin-bottom:10px;">💾 Mis Alineaciones (máx. 5)</div>
+            <div id="squad-slots-list"></div>
         </div>
         <button class="btn" style="font-size:22px;padding:18px 30px;width:100%;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;" onclick="iniciarTorneo()">⚽ COMENZAR TORNEO</button>
     </div>
@@ -486,43 +492,114 @@ let state = {
 // ============================================================
 // PLANTILLA SAVE/LOAD
 // ============================================================
-function guardarPlantilla() {
+// ─── SISTEMA DE 5 ALINEACIONES ───────────────────────────
+const MAX_SQUADS = 5;
+
+function getSquads() {
+    try { return JSON.parse(localStorage.getItem('liga1_squads') || '[]'); } catch(e) { return []; }
+}
+function saveSquads(arr) { localStorage.setItem('liga1_squads', JSON.stringify(arr)); }
+
+function buildSquadData(nombre) {
     const azules = players.filter(p => p.team === 'azul');
-    const data = azules.map(p => ({
-        rolBase: p.rolBase, type: p.type, subType: p.subType,
-        playerName: p.playerName, baseX: p.baseX, baseY: p.baseY
-    }));
-    const save = {
+    return {
+        nombre: nombre,
         teamId: myTeamData.id, teamName: myTeamData.name,
         formation: currentFormation, upgrades: {...state.upgrades},
-        players: data, date: new Date().toLocaleDateString('es-PE')
+        players: azules.map(p => ({ rolBase:p.rolBase, type:p.type, subType:p.subType, playerName:p.playerName, baseX:p.baseX, baseY:p.baseY })),
+        date: new Date().toLocaleDateString('es-PE')
     };
-    localStorage.setItem('liga1_squad', JSON.stringify(save));
-    mostrarAlerta('✅ Plantilla Guardada', `Plantilla de ${myTeamData.name} guardada.\nPuedes cargarla al iniciar el próximo torneo.`);
+}
+
+function guardarPlantilla() {
+    const squads = getSquads();
+    const nombre = prompt('Nombre para esta alineación:', myTeamData.name + ' ' + currentFormation);
+    if (!nombre) return;
+    if (squads.length >= MAX_SQUADS) {
+        mostrarAlerta('❌ Límite alcanzado', 'Ya tienes 5 alineaciones guardadas. Borra una antes de guardar.');
+        return;
+    }
+    squads.push(buildSquadData(nombre.trim()));
+    saveSquads(squads);
+    renderSquadSlots();
+    mostrarAlerta('✅ Alineación Guardada', `"${nombre}" guardada correctamente.`);
+}
+
+function autoGuardarPlantilla() {
+    // Se llama al quedar eliminado — guarda silenciosamente con nombre auto
+    const squads = getSquads();
+    if (squads.length >= MAX_SQUADS) squads.shift(); // quita la más antigua si está lleno
+    const nombre = myTeamData.name + ' (auto)';
+    squads.push(buildSquadData(nombre));
+    saveSquads(squads);
 }
 
 function verificarPlantillaGuardada() {
-    const raw = localStorage.getItem('liga1_squad');
-    if (!raw) return;
-    try {
-        const save = JSON.parse(raw);
-        pendingSquadLoad = save;
-        document.getElementById('load-squad-info').innerText =
-            `Equipo: ${save.teamName} · Formación: ${save.formation} · Guardada el ${save.date}`;
-        document.getElementById('load-squad-banner').style.display = 'block';
-    } catch(e) { localStorage.removeItem('liga1_squad'); }
+    renderSquadSlots();
 }
 
-function cargarPlantilla() {
-    if (!pendingSquadLoad) return;
-    document.getElementById('load-squad-banner').style.display = 'none';
-    // Seleccionar el mismo equipo en el select si existe
+function renderSquadSlots() {
+    const squads = getSquads();
+    const container = document.getElementById('squad-slots-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Slots llenos
+    squads.forEach((s, i) => {
+        const row = document.createElement('div');
+        row.className = 'squad-slot filled';
+        row.innerHTML = `
+            <span style="font-size:18px;">🛡️</span>
+            <div style="flex:1">
+                <div class="squad-slot-name">${s.nombre}</div>
+                <div class="squad-slot-info">${s.teamName} · ${s.formation} · ${s.date}</div>
+            </div>
+            <div class="squad-slot-btns">
+                <button class="sqbtn sqbtn-load" onclick="cargarPlantillaIdx(${i})">▶ Cargar</button>
+                <button class="sqbtn sqbtn-del" onclick="borrarPlantillaIdx(${i})">🗑</button>
+            </div>`;
+        container.appendChild(row);
+    });
+
+    // Slots vacíos
+    for (let i = squads.length; i < MAX_SQUADS; i++) {
+        const row = document.createElement('div');
+        row.className = 'squad-slot empty';
+        row.innerHTML = `<span style="font-size:16px;color:rgba(255,255,255,.2);">＋</span><div class="squad-slot-name" style="color:rgba(255,255,255,.2);">Slot vacío ${i+1}</div>`;
+        container.appendChild(row);
+    }
+}
+
+function cargarPlantillaIdx(idx) {
+    const squads = getSquads();
+    if (!squads[idx]) return;
+    pendingSquadLoad = squads[idx];
     const sel = document.getElementById('team-select');
     if (pendingSquadLoad.teamId && [...sel.options].some(o => o.value === pendingSquadLoad.teamId)) {
         sel.value = pendingSquadLoad.teamId;
         toggleCustomTeam();
     }
-    // Marcar para aplicar después de iniciar
+    state._loadSquad = pendingSquadLoad;
+    mostrarAlerta('✅ Alineación seleccionada', `"${squads[idx].nombre}" se cargará al iniciar el torneo.`);
+}
+
+function borrarPlantillaIdx(idx) {
+    const squads = getSquads();
+    const nombre = squads[idx]?.nombre || 'esta alineación';
+    mostrarConfirmacion('🗑 Borrar alineación', `¿Borrar "${nombre}"?`, () => {
+        squads.splice(idx, 1);
+        saveSquads(squads);
+        renderSquadSlots();
+    }, ()=>{});
+}
+
+function cargarPlantilla() {
+    if (!pendingSquadLoad) return;
+    const sel = document.getElementById('team-select');
+    if (pendingSquadLoad.teamId && [...sel.options].some(o => o.value === pendingSquadLoad.teamId)) {
+        sel.value = pendingSquadLoad.teamId;
+        toggleCustomTeam();
+    }
     state._loadSquad = pendingSquadLoad;
 }
 
@@ -949,7 +1026,10 @@ function simularCopa() {
     for(let i=0;i<current.length;i+=2){let m1=current[i],m2=current[i+1];if(m2)next.push({home:m1.winner,away:m2.winner,isPlayerMatch:(m1.winner===myTeamData||m2.winner===myTeamData),played:false});}
     let myPrev=current.find(m=>m.isPlayerMatch);
     mostrarAlerta('Resumen de Ronda',res,()=>{
-        if(myPrev.winner!==myTeamData){mostrarAlerta('¡ELIMINADO!','Tu equipo fue eliminado de la Copa.',()=>location.reload());}
+        if(myPrev.winner!==myTeamData){
+            autoGuardarPlantilla();
+            mostrarAlerta('¡ELIMINADO!','Tu equipo fue eliminado de la Copa.\n\n💾 Plantilla guardada automáticamente.',()=>location.reload());
+        }
         else if(next.length>0){simulandoCopa=false;tournamentBracket.push(next);currentMatchday++;mostrarBracketCopa();}
         else {
             let ts=Object.values(globalStats).filter(s=>s.goals>0).sort((a,b)=>b.goals-a.goals)[0];
