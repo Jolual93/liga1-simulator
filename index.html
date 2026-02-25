@@ -124,6 +124,29 @@
         .formacion-opt{background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);border-radius:10px;color:white;padding:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;transition:0.2s;width:100%;}
         .formacion-opt:hover{border-color:#f1c40f;background:rgba(241,196,15,0.1);color:#f1c40f;transform:translateX(4px);}
         .formacion-opt.selected{border-color:#f1c40f;background:rgba(241,196,15,0.15);color:#f1c40f;}
+        /* REASIGNACION */
+        #reasign-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3000;align-items:center;justify-content:center;}
+        .reasign-box{background:#1a2535;border:3px solid var(--gold);border-radius:18px;padding:24px;width:720px;max-width:98vw;max-height:95vh;overflow-y:auto;}
+        .reasign-title{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:3px;text-align:center;margin-bottom:4px;}
+        .reasign-sub{text-align:center;font-size:13px;color:rgba(255,255,255,.4);margin-bottom:18px;}
+        .reasign-cols{display:grid;grid-template-columns:1fr 40px 1fr;gap:8px;align-items:start;}
+        .reasign-col-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:10px;padding:6px;background:rgba(255,255,255,.04);border-radius:6px;}
+        .reasign-arrow{display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--gold);padding-top:80px;}
+        .slot-card{background:rgba(255,255,255,.04);border:2px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:10px;min-height:54px;}
+        .slot-card:hover{border-color:var(--gold);background:rgba(241,196,15,.07);}
+        .slot-card.selected-src{border-color:#3498db;background:rgba(52,152,219,.15);box-shadow:0 0 12px rgba(52,152,219,.3);}
+        .slot-card.selected-dst{border-color:#2ecc71;background:rgba(46,204,113,.12);}
+        .slot-card.empty{border-style:dashed;opacity:.6;}
+        .slot-card.dropped{border-color:#2ecc71;background:rgba(46,204,113,.1);}
+        .slot-rol{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700;letter-spacing:1px;}
+        .rol-Lateral{background:rgba(52,152,219,.25);color:#3498db;}
+        .rol-Central{background:rgba(231,76,60,.25);color:#e74c3c;}
+        .rol-Medio{background:rgba(46,204,113,.25);color:#2ecc71;}
+        .rol-Delantero{background:rgba(241,196,15,.25);color:#f1c40f;}
+        .slot-name{font-size:14px;font-weight:700;flex:1;}
+        .slot-stars{font-size:12px;color:var(--gold);}
+        .reasign-btns{display:flex;gap:10px;justify-content:center;margin-top:20px;}
+        .reasign-info{text-align:center;font-size:13px;color:rgba(255,255,255,.4);margin-top:10px;min-height:20px;}
     </style>
 </head>
 <body>
@@ -151,6 +174,30 @@
             <button class="formacion-opt" onclick="elegirFormacionPrevia('5-3-2')">5-3-2 — Defensiva</button>
         </div>
         <p style="font-size:12px;color:rgba(255,255,255,0.25);">Solo se pide antes del primer partido</p>
+    </div>
+</div>
+
+<!-- MODAL REASIGNACION FORMACION -->
+<div id="reasign-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:3000;align-items:center;justify-content:center;">
+    <div class="reasign-box">
+        <div class="reasign-title">🔄 CAMBIO DE TÁCTICA</div>
+        <div class="reasign-sub" id="reasign-sub">Selecciona un jugador de la izquierda y asígnalo a una posición de la derecha</div>
+        <div class="reasign-cols">
+            <div>
+                <div class="reasign-col-title" id="reasign-col-left">FORMACIÓN ACTUAL</div>
+                <div id="reasign-left"></div>
+            </div>
+            <div class="reasign-arrow">→</div>
+            <div>
+                <div class="reasign-col-title" id="reasign-col-right">NUEVA FORMACIÓN</div>
+                <div id="reasign-right"></div>
+            </div>
+        </div>
+        <div class="reasign-info" id="reasign-info"></div>
+        <div class="reasign-btns">
+            <button class="btn" style="background:#e74c3c;min-width:120px;" onclick="cancelarReasign()">✕ Cancelar</button>
+            <button class="btn" style="min-width:160px;" onclick="confirmarReasign()">✅ Confirmar Cambio</button>
+        </div>
     </div>
 </div>
 
@@ -1488,15 +1535,153 @@ function pedirCodigo(){
     }
 }
 
+// ============================================================
+// REASIGNACION DE FORMACION
+// ============================================================
+let reasignTargetFormacion = null;
+let reasignSelectedSrc = null;   // indice del jugador seleccionado en panel izquierdo
+let reasignMapping = [];         // [{srcIdx, dstIdx}] asignaciones hechas
+
 function cambiarFormacion(nombre){
-    mostrarConfirmacion('Cambio de Táctica',`Cambiar a ${nombre} reiniciará posiciones y reembolsará fichajes.\n\n¿Continuar?`,()=>{
-        currentFormation=nombre;let f=formacionesDB[nombre];
-        let campo=players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero');
-        campo.forEach(p=>{if(p.type!=='Novato')state.monedas+=50;});coinsEl.innerText=state.monedas;
-        purchasedPlayers=[];
-        for(let i=0;i<10;i++){campo[i].baseX=f[i].x;campo[i].baseY=f[i].y;campo[i].rolBase=f[i].rol;campo[i].type='Novato';campo[i].subType='Basico';campo[i].playerName=null;campo[i].resetStats();campo[i].reset();}
-        reiniciarPartido();
-    },()=>{document.getElementById('formation-select').value=currentFormation;});
+    if(nombre === currentFormation){ return; }
+    // Abrir modal de reasignacion
+    reasignTargetFormacion = nombre;
+    reasignSelectedSrc = null;
+    reasignMapping = [];
+    document.getElementById('reasign-col-left').innerText = 'FORMACIÓN ACTUAL: ' + currentFormation;
+    document.getElementById('reasign-col-right').innerText = 'NUEVA FORMACIÓN: ' + nombre;
+    renderReasignPanel();
+    document.getElementById('reasign-modal').style.display = 'flex';
+    state.pausado = true;
+}
+
+function renderReasignPanel(){
+    const campo = players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero');
+    const newF = formacionesDB[reasignTargetFormacion];
+    const leftEl = document.getElementById('reasign-left');
+    const rightEl = document.getElementById('reasign-right');
+
+    // Calcular cuantas monedas se recuperan por jugadores no asignados
+    let assignedSrcs = reasignMapping.map(m=>m.srcIdx);
+    let moneyBack = 0;
+    campo.forEach((p,i)=>{ if(p.type!=='Novato' && !assignedSrcs.includes(i)) moneyBack+=50; });
+    
+    let pendingSlots = newF.filter((_,di)=>!reasignMapping.find(m=>m.dstIdx===di)).length;
+    let info = '';
+    if(moneyBack>0) info += `💰 Recuperas ${moneyBack} monedas por jugadores sin asignar  `;
+    if(pendingSlots>0) info += `⚠️ ${pendingSlots} posición(es) quedarán vacías`;
+    document.getElementById('reasign-info').innerText = info;
+
+    // PANEL IZQUIERDO — jugadores actuales
+    leftEl.innerHTML = '';
+    campo.forEach((p,i)=>{
+        const assigned = reasignMapping.find(m=>m.srcIdx===i);
+        const isSelected = reasignSelectedSrc===i;
+        const isUpgraded = p.type!=='Novato';
+        const card = document.createElement('div');
+        card.className = 'slot-card' + (isSelected?' selected-src':'') + (assigned?' dropped':'');
+        card.innerHTML = `
+            <span class="slot-rol rol-${p.rolBase}">${p.rolBase}</span>
+            <span class="slot-name">${p.playerName || '(Sin fichar)'}</span>
+            ${isUpgraded?'<span class="slot-stars">⭐ '+p.type+'</span>':''}
+            ${assigned?'<span style="font-size:11px;color:#2ecc71;">→ Pos '+(assigned.dstIdx+1)+'</span>':''}
+        `;
+        if(!assigned){ card.onclick = ()=>seleccionarSrc(i); }
+        else { card.onclick = ()=>deseleccionarSrc(i); card.title='Clic para quitar asignación'; }
+        leftEl.appendChild(card);
+    });
+
+    // PANEL DERECHO — slots nueva formacion
+    rightEl.innerHTML = '';
+    newF.forEach((pos,di)=>{
+        const mapping = reasignMapping.find(m=>m.dstIdx===di);
+        const srcPlayer = mapping!=null ? campo[mapping.srcIdx] : null;
+        const card = document.createElement('div');
+        card.className = 'slot-card' + (mapping?' dropped':' empty') + (reasignSelectedSrc!==null&&!mapping?' selected-dst':'');
+        card.innerHTML = `
+            <span class="slot-rol rol-${pos.rol}">${pos.rol}</span>
+            <span class="slot-name">${srcPlayer ? (srcPlayer.playerName||'(Sin fichar)') : '<em style="opacity:.4">Vacío</em>'}</span>
+            ${srcPlayer&&srcPlayer.type!=='Novato'?'<span class="slot-stars">⭐</span>':''}
+        `;
+        if(reasignSelectedSrc!==null && !mapping){
+            card.onclick = ()=>asignarSlot(di);
+        } else if(mapping){
+            card.onclick = ()=>deseleccionarSrc(mapping.srcIdx);
+            card.title='Clic para quitar asignación';
+        }
+        rightEl.appendChild(card);
+    });
+}
+
+function seleccionarSrc(i){
+    reasignSelectedSrc = (reasignSelectedSrc===i) ? null : i;
+    renderReasignPanel();
+}
+
+function asignarSlot(dstIdx){
+    if(reasignSelectedSrc===null) return;
+    // Quitar asignacion previa de este src si existe
+    reasignMapping = reasignMapping.filter(m=>m.srcIdx!==reasignSelectedSrc);
+    reasignMapping.push({srcIdx:reasignSelectedSrc, dstIdx});
+    reasignSelectedSrc = null;
+    renderReasignPanel();
+}
+
+function deseleccionarSrc(srcIdx){
+    reasignMapping = reasignMapping.filter(m=>m.srcIdx!==srcIdx);
+    reasignSelectedSrc = null;
+    renderReasignPanel();
+}
+
+function cancelarReasign(){
+    document.getElementById('reasign-modal').style.display = 'none';
+    document.getElementById('formation-select').value = currentFormation;
+    state.pausado = false;
+}
+
+function confirmarReasign(){
+    const campo = players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero');
+    const newF = formacionesDB[reasignTargetFormacion];
+    const assignedSrcs = reasignMapping.map(m=>m.srcIdx);
+
+    // Devolver monedas por jugadores mejorados que NO se reasignaron
+    campo.forEach((p,i)=>{
+        if(p.type!=='Novato' && !assignedSrcs.includes(i)){
+            state.monedas += 50;
+        }
+    });
+
+    // Guardar datos de jugadores asignados antes de resetear
+    const savedPlayers = reasignMapping.map(m=>({
+        dstIdx: m.dstIdx,
+        type: campo[m.srcIdx].type,
+        subType: campo[m.srcIdx].subType,
+        playerName: campo[m.srcIdx].playerName
+    }));
+
+    // Resetear todos a Novato con nueva formacion
+    currentFormation = reasignTargetFormacion;
+    document.getElementById('formation-select').value = currentFormation;
+    purchasedPlayers = [];
+    for(let i=0;i<10;i++){
+        campo[i].baseX=newF[i].x; campo[i].baseY=newF[i].y;
+        campo[i].rolBase=newF[i].rol;
+        campo[i].type='Novato'; campo[i].subType='Basico';
+        campo[i].playerName=null; campo[i].resetStats(); campo[i].reset();
+    }
+
+    // Aplicar jugadores reasignados a sus nuevos slots
+    savedPlayers.forEach(s=>{
+        const p = campo[s.dstIdx];
+        p.type = s.type; p.subType = s.subType; p.playerName = s.playerName;
+        p.aplicarEspecialidad(p.rolBase, s.subType);
+        if(s.playerName) purchasedPlayers.push(s.playerName);
+    });
+
+    coinsEl.innerText = state.monedas;
+    document.getElementById('reasign-modal').style.display = 'none';
+    state.pausado = false;
+    reiniciarPartido();
 }
 
 // ============================================================
