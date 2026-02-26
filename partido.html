@@ -554,6 +554,8 @@ function iniciarPartido(){
     document.getElementById('away-scorers').innerHTML='';
     timeEl.innerText="0'";
     activarSonido();
+    // Guardar referencia original para el replay
+    window._anotarGolOriginal=window.anotarGol;
 
     // Hook: cuando el motor marca gol → sube a Supabase
     window._onGol=async(equipo, jugador, minuto)=>{
@@ -609,7 +611,7 @@ async function mostrarFin(){
     renderMatchesList();
 }
 
-// REPLAY — reproduce los goles en sus minutos exactos sobre el motor corriendo
+// REPLAY — muestra los goles guardados, el motor solo da animación de fondo
 window.iniciarReplay=function(){
     if(!replayEventos.length){alert('No hay eventos para replay');return;}
     const homeTeam=getTeamByName(partidoActual.equipo_local);
@@ -621,23 +623,40 @@ window.iniciarReplay=function(){
     document.getElementById('mode-badge').innerText='🎬 REPLAY';
     document.getElementById('home-scorers').innerHTML='';
     document.getElementById('away-scorers').innerHTML='';
-    // Configurar equipos de nuevo
     configurarEquipos(homeTeam, awayTeam);
+    // Motor corre para animación pero NO detecta goles (override anotarGol)
+    window.anotarGol=function(){ball.reset();players.forEach(p=>p.reset());};
     state.golesAzul=0;state.golesRojo=0;state.tiempo=MATCH_DURATION;
     state.partidoActivo=true;state.pausado=false;
     ball.reset();players.forEach(p=>p.reset());
     timeEl.innerText="0'";
-    // Deshabilitar hooks de Supabase
     window._onGol=null;window._onFinPartido=null;
-    // Programar goles en sus minutos exactos
-    replayEventos.filter(e=>e.tipo==='gol').forEach(ev=>{
-        const segundos=Math.floor((ev.minuto/90)*90);
+
+    // Reproducir solo los goles guardados en sus minutos exactos
+    const golesGuardados=replayEventos.filter(e=>e.tipo==='gol');
+    golesGuardados.forEach(ev=>{
+        const seg=Math.floor((ev.minuto/90)*MATCH_DURATION)*1000;
         setTimeout(()=>{
-            const eq=ev.es_local?'azul':'rojo';
-            const scorerFake={team:eq,playerName:ev.jugador||'Jugador',rolBase:'Delantero'};
-            window.anotarGol(eq,scorerFake,null);
-        },segundos*1000+200);
+            if(ev.es_local){
+                state.golesAzul++;
+                document.getElementById('scoreAzul').innerText=`${homeTeam.name.substring(0,12)}: ${state.golesAzul}`;
+                document.getElementById('home-scorers').innerHTML+=`<div style="margin-top:2px;">⚽ ${ev.minuto}' ${ev.jugador||''}</div>`;
+                mostrarAnimacionGol(ev.jugador,homeTeam.c1);
+            } else {
+                state.golesRojo++;
+                document.getElementById('scoreRojo').innerText=`${awayTeam.name.substring(0,12)}: ${state.golesRojo}`;
+                document.getElementById('away-scorers').innerHTML+=`<div style="margin-top:2px;">⚽ ${ev.minuto}' ${ev.jugador||''}</div>`;
+                mostrarAnimacionGol(ev.jugador,awayTeam.c1);
+            }
+        },seg+200);
     });
+
+    // Al terminar los 90s del replay, restaurar anotarGol original
+    setTimeout(()=>{
+        window.anotarGol=window._anotarGolOriginal;
+        state.partidoActivo=false;
+        document.getElementById('mode-badge').innerText='✅ FIN REPLAY';
+    },MATCH_DURATION*1000+1000);
 };
 
 function suscribirRealtime(){
@@ -682,14 +701,27 @@ function renderMatchesList(){
     container.innerHTML=todosLosPartidos.map(p=>{
         const esMio=nb&&(p.equipo_local===nb||p.equipo_visitante===nb);
         const fin=p.estado==='finalizado',vivo=p.estado==='en_curso';
-        const score=fin?`<span class="ms">${p.goles_local??0} — ${p.goles_visitante??0}</span>`:`<span class="ms-pending">${vivo?'EN VIVO':'VS'}</span>`;
-        return `<div class="match-item ${esMio?'mi-partido':''} ${fin?'finalizado':''} ${vivo?'en-vivo':''}">
+        const score=fin?`<span class="ms">${p.goles_local??0} — ${p.goles_visitante??0}</span>`:`<span class="ms-pending">${vivo?'● EN VIVO':'VS'}</span>`;
+        return `<div class="match-item ${esMio?'mi-partido':''} ${fin?'finalizado':''} ${vivo?'en-vivo':''}" onclick="verPartido('${p.id}')">
             <span class="mt home ${esMio&&p.equipo_local===nb?'mi-equipo':''}">${p.equipo_local}</span>
             ${score}
             <span class="mt ${esMio&&p.equipo_visitante===nb?'mi-equipo':''}">${p.equipo_visitante}</span>
         </div>`;
     }).join('');
 }
+
+// Ver cualquier partido de la jornada
+window.verPartido=function(id){
+    const p=todosLosPartidos.find(x=>x.id===id);
+    if(!p)return;
+    // Cambiar partido activo y reiniciar motor con ese partido
+    partidoActual=p;
+    if(p.estado==='finalizado'){
+        mostrarFin();
+    } else if(jornadaActiva?.estado==='en_vivo'){
+        iniciarPartido();
+    }
+};
 
 function iniciarCountdown(){
     function tick(){
