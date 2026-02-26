@@ -50,7 +50,7 @@
         .mt{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.5px;}
         .mt.home{text-align:right;}
         .mt.mi-equipo{color:#f1c40f;}
-        .ms{font-family:'Bebas Neue',sans-serif;font-size:17px;text-align:center;white-space:nowrap;}
+        .ms{font-family:'Bebas Neue',sans-serif;font-size:17px;text-align:center;}
         .ms-pending{color:rgba(255,255,255,.25);font-size:11px;text-align:center;}
         #fin-panel{display:none;width:800px;background:linear-gradient(135deg,#1a1a1a,#0a0a0a);border:2px solid #f1c40f;border-radius:16px;padding:32px;text-align:center;margin-top:12px;}
         .fin-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:5px;color:#f1c40f;}
@@ -78,7 +78,7 @@
         <span style="color:rgba(255,255,255,.3);">—</span>
         <span id="scoreRojo">Visita: 0</span>
     </div>
-    <span id="timeEl">0'</span>
+    <span id="timeEl">90</span>
     <span class="mode-badge badge-live" id="mode-badge">● EN VIVO</span>
 </div>
 
@@ -121,28 +121,109 @@
 <div class="matches-list" id="matches-list"></div>
 
 <script>
-// ── CONSTANTES ──────────────────────────────────────────────
-const GOAL_Y_START=175,GOAL_Y_END=325,GOAL_HEIGHT=150;
-let state={golesAzul:0,golesRojo:0,partidoActivo:false,pausado:false,upgrades:{speed:false,shoot:false,gk:false}};
-let modoVista='wait',colorHome='#3498db',colorAway='#e74c3c',nombreHome='Local',nombreAway='Visita';
-let matchMinuto=0,timerInterval=null,eventos=[],replayIdx=0;
-const coinsEl={innerText:''};
+// ════════════════════════════════════════════════════════════════
+// BASE DE DATOS — IGUAL QUE EL OFFLINE
+// ════════════════════════════════════════════════════════════════
+const DATABASE_TEAMS = [
+    {id:'u',   name:'Universitario de Deportes', c1:'#f3e5ab',c2:'#800000',power:90},
+    {id:'al',  name:'Alianza Lima',               c1:'#1a237e',c2:'#ffffff',power:90},
+    {id:'sc',  name:'Sporting Cristal',           c1:'#5DADE2',c2:'#ffffff',power:90},
+    {id:'mel', name:'FBC Melgar',                 c1:'#c0392b',c2:'#000000',power:85},
+    {id:'cus', name:'Cusco FC',                   c1:'#d4af37',c2:'#000000',power:85},
+    {id:'sba', name:'Sport Boys Association',     c1:'#fd79a8',c2:'#000000',power:65},
+    {id:'gar', name:'Deportivo Garcilaso',        c1:'#81ecec',c2:'#1a1a1a',power:65},
+    {id:'com', name:'Comerciantes Unidos',        c1:'#6c5ce7',c2:'#f1c40f',power:60},
+    {id:'cie', name:'Cienciano',                  c1:'#e74c3c',c2:'#ffffff',power:75},
+    {id:'shu', name:'Sport Huancayo',             c1:'#b33939',c2:'#27ae60',power:70},
+    {id:'adt', name:'ADT de Tarma',               c1:'#74b9ff',c2:'#2d3436',power:75},
+    {id:'gra', name:'Atlético Grau',              c1:'#ffec13',c2:'#1a1a1a',power:75},
+    {id:'utc', name:'UTC Cajamarca',              c1:'#f5deb3',c2:'#800000',power:60},
+    {id:'jpi', name:'Juan Pablo II College',      c1:'#f39c12',c2:'#e74c3c',power:60},
+    {id:'cha', name:'CD Los Chankas',             c1:'#d63031',c2:'#d4af37',power:65},
+    {id:'fcc', name:'FC Cajamarca',               c1:'#bdc3c7',c2:'#2c3e50',power:60},
+    {id:'aal', name:'Alianza Atlético Sullana',   c1:'#ecf0f1',c2:'#2980b9',power:65},
+    {id:'moq', name:'Deportivo Moquegua',         c1:'#00b894',c2:'#ffffff',power:60}
+];
 
-// ── CANVAS ──────────────────────────────────────────────────
+const ROSTERS = {
+    'u':  {Portero:['D. Romero','M. Vargas','J. Rodríguez'],Central:['A. Santamaría','W. Riveros','M. Di Benedetto','A. Corzo'],Lateral:['C. Inga','J. Carabalí','P. Reyna','H. Ancajima'],Medio:['J. Castillo','J. Murrugarra','J. Concha','H. Calcaterra','D. Vásquez','S. Flores'],Extremo:['E. Flores','H. Fértoli','C. Loayza','A. Polo'],Delantero:['Á. Valera','J. Rivera','S. Gassama','R. Dioses']},
+    'al': {Portero:['G. Viscarra','A. Duarte','F. Mesías'],Central:['R. Garcés','G. Chávez','M. Antoni','J. Velásquez'],Lateral:['C. Carbajal','R. Alarcón','D. Montenegro','L. Advíncula'],Medio:['P. Aquino','J. Castillo','E. Pavez','P. Cari','F. Gaibor'],Extremo:['K. Quevedo','A. Cantero','E. Castillo','G. Gentile'],Delantero:['F. Girotti','L. Ramos','P. Guerrero','G. Motta']},
+    'sc': {Portero:['D. Enríquez','R. Solís','I. Spoljaric'],Central:['L. Abram','M. Araujo','R. Lutiger','A. Pósito'],Lateral:['Cristiano','F. Lora','L. Sosa','J. González'],Medio:['G. Cazonatti','C. Cabellos','M. Távara','Y. Yotún','C. Benavente'],Extremo:['S. González','M. Castro','S. Sánchez','J. Moretti'],Delantero:['F. Vizeu','L. Iberico','D. Otaya']},
+    'mel':{Portero:['C. Cáceda','J. Cabezuado','R. Farro'],Central:['M. Lazo','J. Alcántar','A. Deneumostier'],Lateral:['N. Cabanillas','J. Ayque','Á. Obando'],Medio:['J. Salas','W. Tandazo','Y. Gamero','K. Yáñez','N. Quagliata'],Extremo:['J. Cáceres','F. Zanelatto','C. Bordacahar'],Delantero:['P. Erustes','J. de Santis','N. Figueroa']},
+    'cus':{Portero:['P. Díaz','A. Vidal','R. Anderson'],Central:['C. Gamarra','G. Choi','A. Fuentes'],Lateral:['J. Bolívar','Á. Ampuero','M. Ruidías'],Medio:['M. Auca','O. Valenzuela','C. Diez','I. Colman'],Extremo:['L. Colitto','J. Manzaneda','J. Alí'],Delantero:['F. Callejo','J. Tévez']},
+    'cie':{Portero:['J. Bolado','M. Vargas'],Central:['J. Valoyes','D. Ortiz','H. Riojas'],Lateral:['J. Estrada','A. Ugarriza','K. Aparicio'],Medio:['Á. Romero','C. Torrejón','R. García'],Extremo:['K. Sandoval','G. Gentile','J. Romagnoli'],Delantero:['D. Carando','G. Pacheco']},
+    'adt':{Portero:['J. Valencia','C. Solís'],Central:['R. Biojó','J. Soto','L. Gómez Cuero'],Lateral:['J. Navarro','A. Gutiérrez'],Medio:['J. Guivín','Á. Ojeda','L. Pérez','V. Cedrón'],Extremo:['A. Mazzo'],Delantero:['A. Rodríguez','H. Rengifo','N. Rengifo']},
+    'gra':{Portero:['P. Álvarez','A. Fuentes'],Central:['R. Tapia','F. Cavagna','D. Franco'],Lateral:['J. Bolívar','E. Rodas'],Medio:['R. Guarderas','D. Barreto','H. Espinoza','E. Correa'],Extremo:['N. Delgadillo'],Delantero:['R. Ruidíaz','I. Camargo']},
+    'shu':{Portero:['Á. Zamudio','D. Campos'],Central:['J. Barreda','M. Gaona','Y. Murillo'],Lateral:['H. Ángeles','A. Chávez'],Medio:['R. Salcedo','E. Villar','C. Huyhua'],Extremo:['P. Magallanes','J. Canela'],Delantero:['W. Díaz','R. Huaccha']},
+    'sba':{Portero:['S. Rivadeneira'],Central:['G. Dulanto','A. Flores','R. Alfani'],Lateral:['M. Llontop','S. Aranda'],Medio:['E. Gonzales','F. Illanes','L. Solís'],Extremo:['J. Alarcón','J. Torres','L. Urruti'],Delantero:['L. Nequecaur','P. Liza']},
+    'gar':{Portero:['P. Zubczuk','J. Barbieri'],Central:['A. Gómez','H. Benincasa','J. Portales'],Lateral:['O. Núñez','E. Canales'],Medio:['C. Torrejón','I. Garrafa','A. Ascues'],Extremo:['K. Sandoval','B. da Silva','F. Arancibia'],Delantero:['A. Graneros','C. Olivares','J. Sinisterra']},
+    'com':{Portero:['Á. Villete','J. Charún'],Central:['Y. Vílchez','J. Rodríguez','F. Alcedo'],Lateral:['C. Vásquez','A. Cossio'],Medio:['C. Correa','M. Carpio','J. Herrera'],Extremo:['W. Ayoví','Ó. Pinto'],Delantero:['M. Sen','M. Carranza']},
+    'fcc':{Portero:['S. Aspajo','M. Sandi'],Central:['H. Timaná','M. Almirón','B. Bernaola'],Lateral:['N. Loyola','R. Lagos'],Medio:['A. Moyano','K. Paico','P. Lavandeira'],Extremo:['F. Ocas','C. Meza','B. Palacios'],Delantero:['H. Barcos','S. Peralta']},
+    'utc':{Portero:['Á. Campos','R. Bettocchi'],Central:['M. Ganoza','P. Serra','B. Duarte'],Lateral:['J. Huerto','D. Caro'],Medio:['M. Lliuya','A. Muñoz','D. Camacho'],Extremo:['L. Arce','J. Núñez'],Delantero:['M. de Jesús']},
+    'jpi':{Portero:['I. Quispe','J. Stucchi'],Central:['B. Puño','S. Luzquiños','P. Fuentes'],Lateral:['F. Agurto','P. Antón'],Medio:['C. Flores','C. García','D. Lozano','C. Cueva'],Extremo:['M. Alaníz','A. Espinoza'],Delantero:['M. Juambeltz']},
+    'cha':{Portero:['F. Saravia','H. Camacho'],Central:['G. Rizzo','M. Kaufman','C. Pimienta'],Lateral:['A. Quintana','B. Guevara'],Medio:['K. Sánchez','D. Dioses','J. Palomino'],Extremo:['J. Manzaneda','O. Takeuchi'],Delantero:['I. Camargo','P. Bueno']},
+    'aal':{Portero:['E. Hermoza','D. Prieto'],Central:['A. Gordillo','E. Perleche','W. Guzmán'],Lateral:['J. Mendieta','J. Aguirre'],Medio:['F. Urciuoli','H. Lupú','C. Vásquez'],Extremo:['J. Quintana'],Delantero:['P. Guzmán']},
+    'moq':{Portero:['C. Grados','R. Figueroa'],Central:['J. Amasifuen','C. Enciso','J. Granda'],Lateral:['E. Montenegro','A. Perleche'],Medio:['R. Chipao','C. Ramírez','D. Ramírez'],Extremo:['K. Ruiz','J. Vilela'],Delantero:['B. Angulo','J. Collazos','E. Lastre']},
+    'gen':{Portero:['S. Rivadeneyra'],Central:['L. Abram','C. Ramos'],Lateral:['L. Advíncula','M. Trauco'],Medio:['R. Tapia','W. Cartagena'],Extremo:['A. Carrillo'],Delantero:['G. Lapadula','L. Urruti']}
+};
+
+function getTeamByName(nombre) {
+    return DATABASE_TEAMS.find(t => t.name === nombre) || {id:'gen', name:nombre, c1:'#3498db', c2:'#fff', power:70};
+}
+
+function generateStarting11(teamId) {
+    let db = ROSTERS[teamId] || ROSTERS['gen'];
+    let gk = db.Portero?.[0] || 'Arquero';
+    let field = [];
+    for (let cat of ['Delantero','Extremo','Medio','Lateral','Central']) if(db[cat]) field = field.concat(db[cat]);
+    field = [...new Set(field)].slice(0,10);
+    while (field.length < 10) field.push('Juvenil '+Math.floor(Math.random()*99));
+    return {gk, field};
+}
+
+// ════════════════════════════════════════════════════════════════
+// ESTADO — IDÉNTICO AL OFFLINE
+// ════════════════════════════════════════════════════════════════
+const GOAL_Y_START=175, GOAL_HEIGHT=150, GOAL_Y_END=GOAL_Y_START+GOAL_HEIGHT;
+const MATCH_DURATION=90;
+
 const canvas=document.getElementById('gameCanvas');
 const ctx=canvas.getContext('2d');
+const timeEl=document.getElementById('timeEl');
+const coinsEl={innerText:''};
 
-// ── FORMACIONES ─────────────────────────────────────────────
-const formacionesDB={"4-4-2":[{x:130,y:100,rol:'Lateral'},{x:110,y:200,rol:'Central'},{x:110,y:300,rol:'Central'},{x:130,y:400,rol:'Lateral'},{x:250,y:100,rol:'Medio'},{x:220,y:200,rol:'Medio'},{x:220,y:300,rol:'Medio'},{x:250,y:400,rol:'Medio'},{x:350,y:180,rol:'Delantero'},{x:350,y:320,rol:'Delantero'}]};
+let state={golesAzul:0, golesRojo:0, tiempo:MATCH_DURATION, partidoActivo:false, pausado:false};
 
-// ── SONIDO ──────────────────────────────────────────────────
+// Datos del partido actual
+let currentMatchState={
+    myTeamIsHome:true,
+    homeData:null,  // equipo azul (local)
+    awayData:null,  // equipo rojo (visitante)
+    actualHomeColor:'#3498db',
+    actualAwayColor:'#e74c3c'
+};
+
+// ════════════════════════════════════════════════════════════════
+// FORMACIONES
+// ════════════════════════════════════════════════════════════════
+const formacionesDB={
+    "4-4-2":[{x:130,y:100,rol:'Lateral'},{x:110,y:200,rol:'Central'},{x:110,y:300,rol:'Central'},{x:130,y:400,rol:'Lateral'},{x:250,y:100,rol:'Medio'},{x:220,y:200,rol:'Medio'},{x:220,y:300,rol:'Medio'},{x:250,y:400,rol:'Medio'},{x:350,y:180,rol:'Delantero'},{x:350,y:320,rol:'Delantero'}]
+};
+
+// ════════════════════════════════════════════════════════════════
+// SONIDO — IGUAL AL OFFLINE
+// ════════════════════════════════════════════════════════════════
 const AudioCtx=window.AudioContext||window.webkitAudioContext;
 const audioCtx=new AudioCtx();
-let soundEnabled=false;
-function playKick(){if(!soundEnabled)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='triangle';o.frequency.setValueAtTime(150,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.1);g.gain.setValueAtTime(.3,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.1);o.start();o.stop(audioCtx.currentTime+.1);}
-function playGoal(){if(!soundEnabled)return;const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const n=audioCtx.createBufferSource();n.buffer=buf;const f=audioCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=800;const g=audioCtx.createGain();n.connect(f);f.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0,audioCtx.currentTime);g.gain.linearRampToValueAtTime(.4,audioCtx.currentTime+.2);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+2);n.start();}
+let soundEnabled=true;
+function activarSonido(){if(audioCtx.state==='suspended')audioCtx.resume();}
+function playKick(){if(!soundEnabled)return;try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='triangle';o.frequency.setValueAtTime(150,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.1);g.gain.setValueAtTime(.3,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.1);o.start();o.stop(audioCtx.currentTime+.1);}catch(e){}}
+function playWhistle(){if(!soundEnabled)return;try{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='square';o.frequency.setValueAtTime(2000,audioCtx.currentTime);g.gain.setValueAtTime(.05,audioCtx.currentTime);g.gain.setValueAtTime(.05,audioCtx.currentTime+.1);g.gain.setValueAtTime(0,audioCtx.currentTime+.15);g.gain.setValueAtTime(.05,audioCtx.currentTime+.2);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.5);o.start();o.stop(audioCtx.currentTime+.5);}catch(e){}}
+function playGoal(){if(!soundEnabled)return;try{const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const n=audioCtx.createBufferSource();n.buffer=buf;const f=audioCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=800;const g=audioCtx.createGain();n.connect(f);f.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0,audioCtx.currentTime);g.gain.linearRampToValueAtTime(.4,audioCtx.currentTime+.2);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+2);n.start();}catch(e){}}
 
-// ── MOTOR: Ball ─────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// CLASE BALL — IDÉNTICA AL OFFLINE
+// ════════════════════════════════════════════════════════════════
 class Ball{
     constructor(){this.reset();this.radius=6;this.color='#fff';this.friction=0.98;}
     reset(){this.x=canvas.width/2;this.y=canvas.height/2;this.vx=0;this.vy=0;this.lastTouch=null;this.assistTouch=null;}
@@ -151,30 +232,44 @@ class Ball{
         if(this.y-this.radius<0){this.y=this.radius;this.vy*=-1;}
         else if(this.y+this.radius>canvas.height){this.y=canvas.height-this.radius;this.vy*=-1;}
         if(this.x-this.radius<0){
-            if(this.y>GOAL_Y_START&&this.y<GOAL_Y_END){ball.reset();players.forEach(p=>p.reset());}
+            if(this.y>GOAL_Y_START&&this.y<GOAL_Y_END) window.anotarGol('rojo',this.lastTouch,this.assistTouch);
             else{this.x=this.radius;this.vx*=-1;}
         }
         if(this.x+this.radius>canvas.width){
-            if(this.y>GOAL_Y_START&&this.y<GOAL_Y_END){ball.reset();players.forEach(p=>p.reset());}
+            if(this.y>GOAL_Y_START&&this.y<GOAL_Y_END) window.anotarGol('azul',this.lastTouch,this.assistTouch);
             else{this.x=canvas.width-this.radius;this.vx*=-1;}
         }
     }
     draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);ctx.fillStyle=this.color;ctx.fill();ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.stroke();ctx.closePath();}
 }
 
-// ── MOTOR: Player ───────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// CLASE PLAYER — IDÉNTICA AL OFFLINE
+// ════════════════════════════════════════════════════════════════
 class Player{
-    constructor(bx,by,color,team,rolBase,numero){this.baseX=bx;this.baseY=by;this.x=bx;this.y=by;this.color=color;this.team=team;this.rolBase=rolBase;this.numero=numero;this.type='Novato';this.subType='Basico';this.cooldown=0;this.playerName=null;this.wallPassActive=0;this.resetStats();}
+    constructor(bx,by,color,team,rolBase,numero){
+        this.baseX=bx;this.baseY=by;this.x=bx;this.y=by;
+        this.color=color;this.team=team;this.rolBase=rolBase;this.numero=numero;
+        this.type='Novato';this.subType='Basico';this.cooldown=0;
+        this.playerName=null;this.wallPassActive=0;this.resetStats();
+    }
     resetStats(){this.radius=9;this.speed=2.5;this.kickPower=5;this.rangoTiro=250;this.precisionPase=0.5;this.saveSkill=0.2;this.wallPassActive=0;}
     reset(){this.x=this.baseX;this.y=this.baseY;this.cooldown=0;this.wallPassActive=0;}
     aplicarEspecialidad(t,s){
         this.type=t;this.subType=s;
-        const m={'Ofensivo':[11,2.5,6,0.4,0.8],'Defensivo':[15,3.5,8,0.9,0.2],'Central':[13,1.6,7,0.2,0.5],'Lateral Ofensivo':[9,3.5,6,0.2,0.8],'Lateral Defensivo':[9,3.2,4,0.2,0.3],'MCD':[11,2.5,5,0.2,0.5],'Mediapunta':[9,2.8,6,0.2,1.0],'Box to Box':[10,3.2,7,0.2,0.6],'Extremo':[8,4.0,5,0.2,0.8],'Centrodelantero':[13,1.6,9,0.2,0.5],'Segundo Delantero':[9,3.2,6,0.2,0.6]};
-        if(m[s]){[this.radius,this.speed,this.kickPower,this.saveSkill,this.precisionPase]=m[s];}
-        if(s==='Central')this.rangoTiro=0;
-        if(s==='Box to Box')this.rangoTiro=300;
-        if(s==='Centrodelantero')this.rangoTiro=180;
-        if(s==='Segundo Delantero')this.rangoTiro=350;
+        switch(s){
+            case 'Ofensivo':this.radius=11;this.speed=2.5;this.kickPower=6;this.saveSkill=0.4;this.precisionPase=0.8;break;
+            case 'Defensivo':this.radius=15;this.speed=3.5;this.kickPower=8;this.saveSkill=0.9;this.precisionPase=0.2;break;
+            case 'Central':this.radius=13;this.speed=1.6;this.kickPower=7;this.rangoTiro=0;break;
+            case 'Lateral Ofensivo':this.radius=9;this.speed=3.5;this.kickPower=6;this.precisionPase=0.8;break;
+            case 'Lateral Defensivo':this.radius=9;this.speed=3.2;this.kickPower=4;this.precisionPase=0.3;break;
+            case 'MCD':this.radius=11;this.speed=2.5;this.kickPower=5;this.precisionPase=0.5;break;
+            case 'Mediapunta':this.radius=9;this.speed=2.8;this.kickPower=6;this.precisionPase=1.0;break;
+            case 'Box to Box':this.radius=10;this.speed=3.2;this.kickPower=7;this.precisionPase=0.6;this.rangoTiro=300;break;
+            case 'Extremo':this.radius=8;this.speed=4.0;this.kickPower=5;this.precisionPase=0.8;break;
+            case 'Centrodelantero':this.radius=13;this.speed=1.6;this.kickPower=9;this.rangoTiro=180;break;
+            case 'Segundo Delantero':this.radius=9;this.speed=3.2;this.kickPower=6;this.rangoTiro=350;break;
+        }
     }
     update(ballObj,allPlayers){
         if(this.cooldown>0)this.cooldown--;
@@ -211,21 +306,24 @@ class Player{
         if(dBall<this.radius+ballObj.radius&&this.cooldown===0){
             playKick();
             if(ballObj.lastTouch!==this){if(ballObj.lastTouch&&ballObj.lastTouch.team===this.team)ballObj.assistTouch=ballObj.lastTouch;else ballObj.assistTouch=null;ballObj.lastTouch=this;}
-            const dGoal=Math.hypot(enemyGoalX-this.x,(GOAL_Y_START+GOAL_HEIGHT/2)-this.y);
-            const shotClear=()=>{let a=Math.atan2((GOAL_Y_START+GOAL_HEIGHT/2)-this.y,enemyGoalX-this.x);return !allPlayers.some(e=>e.team!==this.team&&e.rolBase!=='Portero'&&Math.abs(Math.atan2(e.y-this.y,e.x-this.x)-a)<.25&&Math.hypot(e.x-this.x,e.y-this.y)<dGoal);};
+            const dGoal=Math.hypot(enemyGoalX-this.x,enemyGoalY-this.y);
+            const shotClear=()=>{let a=Math.atan2(enemyGoalY-this.y,enemyGoalX-this.x);return !allPlayers.some(e=>e.team!==this.team&&e.rolBase!=='Portero'&&Math.abs(Math.atan2(e.y-this.y,e.x-this.x)-a)<.25&&Math.hypot(e.x-this.x,e.y-this.y)<dGoal);};
             const passSafe=t=>{let a=Math.atan2(t.y-this.y,t.x-this.x),d=Math.hypot(t.x-this.x,t.y-this.y);return !allPlayers.some(e=>e.team!==this.team&&Math.abs(Math.atan2(e.y-this.y,e.x-this.x)-a)<.3&&Math.hypot(e.x-this.x,e.y-this.y)<d);};
             let canShoot=dGoal<=this.rangoTiro;
             if(this.subType==='Centrodelantero'&&!canShoot&&shotClear()&&dGoal<=320)canShoot=true;
             if(this.subType==='Box to Box'&&dGoal<=300&&shotClear())canShoot=true;
             if(canShoot&&this.rolBase!=='Portero'&&this.subType!=='Central'){
-                let ang=Math.atan2((GOAL_Y_START+GOAL_HEIGHT/2)-this.y,enemyGoalX-this.x)+(Math.random()-.5)*.4;
+                let ang=Math.atan2(enemyGoalY-this.y,enemyGoalX-this.x)+(Math.random()-.5)*.4;
                 ballObj.vx=Math.cos(ang)*this.kickPower*1.5;ballObj.vy=Math.sin(ang)*this.kickPower*1.5;this.cooldown=15;
             } else {
                 const sfwd=allPlayers.filter(p=>p.team===this.team&&p!==this&&passSafe(p)&&(this.team==='azul'?p.x>this.x:p.x<this.x));
                 const sbk=allPlayers.filter(p=>p.team===this.team&&p!==this&&passSafe(p)&&(this.team==='azul'?p.x<=this.x:p.x>=this.x));
                 let tgt=null;
-                if(sfwd.length)tgt=sfwd[Math.floor(Math.random()*sfwd.length)];
-                else if(sbk.length)tgt=sbk[0];
+                if(this.subType==='Mediapunta'){let fw=sfwd.filter(p=>p.rolBase==='Delantero');if(fw.length)tgt=fw[Math.floor(Math.random()*fw.length)];else{let a=Math.atan2(enemyGoalY-this.y,enemyGoalX-this.x);ballObj.vx=Math.cos(a)*this.speed*1.3;ballObj.vy=Math.sin(a)*this.speed*1.3;this.cooldown=10;return;}}
+                else if(this.subType==='MCD'){if(sfwd.length>0&&Math.random()>.2)tgt=sfwd[Math.floor(Math.random()*sfwd.length)];else if(sbk.length){let d=sbk.filter(p=>p.rolBase!=='Portero');tgt=d.length?d[Math.floor(Math.random()*d.length)]:sbk[0];}}
+                else if(this.subType==='Extremo'||this.subType==='Lateral Ofensivo'){if(Math.abs(enemyGoalX-this.x)>160){let a=Math.atan2((this.y<canvas.height/2?40:canvas.height-40)-this.y,enemyGoalX-this.x);ballObj.vx=Math.cos(a)*this.speed*1.6;ballObj.vy=Math.sin(a)*this.speed*1.6;this.cooldown=8;return;}let fw=sfwd.filter(p=>p.subType==='Centrodelantero'||p.rolBase==='Delantero');if(fw.length)tgt=fw.reduce((c,p)=>(this.team==='azul'?p.x>c.x:p.x<c.x)?p:c,fw[0]);else if(sfwd.length)tgt=sfwd[0];}
+                else if(this.subType==='Box to Box'){if(sfwd.length)tgt=sfwd[Math.floor(Math.random()*sfwd.length)];else if(sbk.length)tgt=sbk[0];}
+                else{if(sfwd.length)tgt=sfwd[0];else if(this.subType==='Centrodelantero'&&sbk.length)tgt=sbk[0];}
                 if(tgt){let err=(1-this.precisionPase)*(Math.random()-.5)*1.5,a=Math.atan2(tgt.y-this.y,tgt.x-this.x);ballObj.vx=Math.cos(a+err)*this.kickPower*1.2;ballObj.vy=Math.sin(a+err)*this.kickPower*1.2;}
                 else{ballObj.vx=attackDir*this.kickPower;ballObj.vy=(Math.random()-.5)*2;}
                 this.cooldown=15;
@@ -244,51 +342,141 @@ class Player{
     }
 }
 
-// ── INSTANCIAS ──────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// INSTANCIAS
+// ════════════════════════════════════════════════════════════════
 const ball=new Ball();
 const players=[];
 players.push(new Player(30,250,'#3498db','azul','Portero',1));
 let nA=2;formacionesDB["4-4-2"].forEach(p=>players.push(new Player(p.x,p.y,'#3498db','azul',p.rol,nA++)));
 players.push(new Player(770,250,'#e74c3c','rojo','Portero',1));
 let nR=2;
-[{x:670,y:100,rol:'Lateral'},{x:690,y:200,rol:'Central'},{x:690,y:300,rol:'Central'},{x:670,y:400,rol:'Lateral'},{x:550,y:100,rol:'Medio'},{x:580,y:200,rol:'Medio'},{x:580,y:300,rol:'Medio'},{x:550,y:400,rol:'Medio'},{x:450,y:180,rol:'Delantero'},{x:450,y:320,rol:'Delantero'}].forEach(p=>players.push(new Player(p.x,p.y,'#e74c3c','rojo',p.rol,nR++)));
+[{x:670,y:100,rol:'Lateral'},{x:690,y:200,rol:'Central'},{x:690,y:300,rol:'Central'},{x:670,y:400,rol:'Lateral'},
+ {x:550,y:100,rol:'Medio'},{x:580,y:200,rol:'Medio'},{x:580,y:300,rol:'Medio'},{x:550,y:400,rol:'Medio'},
+ {x:450,y:180,rol:'Delantero'},{x:450,y:320,rol:'Delantero'}
+].forEach(p=>players.push(new Player(p.x,p.y,'#e74c3c','rojo',p.rol,nR++)));
 
-// ── ASIGNAR ESPECIALIDADES A TODOS (para movimiento realista) ─
-function asignarEspecialidades(){
-    const roles=['Lateral Ofensivo','Central','Central','Lateral Defensivo','MCD','Box to Box','MCD','Extremo','Centrodelantero','Segundo Delantero'];
-    players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero').forEach((p,i)=>p.aplicarEspecialidad(p.rolBase,roles[i]||'Basico'));
-    players.find(p=>p.team==='azul'&&p.rolBase==='Portero')?.aplicarEspecialidad('Portero','Defensivo');
-    players.filter(p=>p.team==='rojo'&&p.rolBase!=='Portero').forEach((p,i)=>p.aplicarEspecialidad(p.rolBase,roles[i]||'Basico'));
-    players.find(p=>p.team==='rojo'&&p.rolBase==='Portero')?.aplicarEspecialidad('Portero','Defensivo');
+// ════════════════════════════════════════════════════════════════
+// CONFIGURAR PARTIDO — asigna nombres reales a los jugadores
+// ════════════════════════════════════════════════════════════════
+function configurarEquipos(homeTeam, awayTeam) {
+    currentMatchState.homeData = homeTeam;
+    currentMatchState.awayData = awayTeam;
+    currentMatchState.actualHomeColor = homeTeam.c1;
+    currentMatchState.actualAwayColor = awayTeam.c1;
+
+    // Aplicar colores
+    players.forEach(p=>{
+        if(p.team==='azul') p.color=homeTeam.c1;
+        if(p.team==='rojo') p.color=awayTeam.c1;
+    });
+
+    // Asignar especialidades y NOMBRES REALES — igual que mejorarEquipoRival del offline
+    const rolesSubtipos=['Lateral Ofensivo','Central','Central','Lateral Defensivo','MCD','Box to Box','MCD','Extremo','Centrodelantero','Segundo Delantero'];
+    const homePoder=homeTeam.power||70, awayPoder=awayTeam.power||70;
+
+    // AZUL (local)
+    const homeS11=generateStarting11(homeTeam.id);
+    const azulField=players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero');
+    const azulGK=players.find(p=>p.team==='azul'&&p.rolBase==='Portero');
+    azulField.forEach((p,i)=>{
+        const sub=rolesSubtipos[i]||'Basico';
+        p.aplicarEspecialidad(p.rolBase,sub);
+        p.speed*=(homePoder/70);p.kickPower*=(homePoder/70);
+        p.playerName=homeS11.field[i]||'Jugador';
+    });
+    if(azulGK){azulGK.aplicarEspecialidad('Portero','Defensivo');azulGK.playerName=homeS11.gk;}
+
+    // ROJO (visitante)
+    const awayS11=generateStarting11(awayTeam.id);
+    const rojoField=players.filter(p=>p.team==='rojo'&&p.rolBase!=='Portero');
+    const rojoGK=players.find(p=>p.team==='rojo'&&p.rolBase==='Portero');
+    rojoField.forEach((p,i)=>{
+        const sub=rolesSubtipos[i]||'Basico';
+        p.aplicarEspecialidad(p.rolBase,sub);
+        p.speed*=(awayPoder/70);p.kickPower*=(awayPoder/70);
+        p.playerName=awayS11.field[i]||'Jugador';
+    });
+    if(rojoGK){rojoGK.aplicarEspecialidad('Portero','Defensivo');rojoGK.playerName=awayS11.gk;}
+
+    // Score UI
+    document.getElementById('scoreAzul').innerText=`${homeTeam.name.substring(0,12)}: 0`;
+    document.getElementById('scoreAzul').style.color=homeTeam.c1;
+    document.getElementById('scoreRojo').innerText=`${awayTeam.name.substring(0,12)}: 0`;
+    document.getElementById('scoreRojo').style.color=awayTeam.c1;
 }
-asignarEspecialidades();
 
-// ── RENDER CAMPO ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// ANOTAR GOL — IDÉNTICO AL OFFLINE + sube a Supabase
+// ════════════════════════════════════════════════════════════════
+window.anotarGol=function(equipo, scorerP, assistP){
+    if(!state.partidoActivo||state.tiempo<=0)return;
+    if(equipo==='azul'&&scorerP&&scorerP.team!=='azul')return;
+    if(equipo==='rojo'&&scorerP&&scorerP.team!=='rojo')return;
+    playGoal();playWhistle();
+    const sName=scorerP?.playerName?scorerP.playerName.split(' ').pop():null;
+    const tMin=Math.floor(((MATCH_DURATION-state.tiempo)/MATCH_DURATION)*90)+1;
+    const ev=`<div style="margin-top:2px;">⚽ ${tMin}' ${sName||'Jugador'}</div>`;
+    if(equipo==='azul'){
+        state.golesAzul++;
+        document.getElementById('scoreAzul').innerText=`${currentMatchState.homeData?.name.substring(0,12)||'Local'}: ${state.golesAzul}`;
+        document.getElementById('home-scorers').innerHTML+=ev;
+        mostrarAnimacionGol(sName,currentMatchState.actualHomeColor);
+    } else {
+        state.golesRojo++;
+        document.getElementById('scoreRojo').innerText=`${currentMatchState.awayData?.name.substring(0,12)||'Visita'}: ${state.golesRojo}`;
+        document.getElementById('away-scorers').innerHTML+=ev;
+        mostrarAnimacionGol(sName,currentMatchState.actualAwayColor);
+    }
+    ball.reset();players.forEach(p=>p.reset());
+    // Notificar a Supabase (si función disponible)
+    if(window._onGol) window._onGol(equipo, sName, tMin);
+};
+
+// ════════════════════════════════════════════════════════════════
+// TIMER — IDÉNTICO AL OFFLINE
+// ════════════════════════════════════════════════════════════════
+setInterval(()=>{
+    if(state.partidoActivo&&state.tiempo>0&&!state.pausado){
+        state.tiempo--;
+        const minMostrar=Math.floor(((MATCH_DURATION-state.tiempo)/MATCH_DURATION)*90);
+        timeEl.innerText=minMostrar+"'";
+        if(state.tiempo<=0){
+            state.partidoActivo=false;
+            ball.vx=0;ball.vy=0;
+            playWhistle();
+            setTimeout(()=>{ if(window._onFinPartido) window._onFinPartido(); },800);
+        }
+    }
+},1000);
+
+// ════════════════════════════════════════════════════════════════
+// RENDER — IGUAL AL OFFLINE
+// ════════════════════════════════════════════════════════════════
 function drawPitch(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     ctx.fillStyle='#27ae60';ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=3;ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);
+    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=3;ctx.strokeRect(0,0,canvas.width,canvas.height);
     ctx.beginPath();ctx.moveTo(canvas.width/2,0);ctx.lineTo(canvas.width/2,canvas.height);ctx.stroke();
     ctx.beginPath();ctx.arc(canvas.width/2,canvas.height/2,60,0,Math.PI*2);ctx.stroke();
-    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,GOAL_Y_START);ctx.lineTo(0,GOAL_Y_END);ctx.strokeStyle=colorHome;ctx.stroke();
+    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,GOAL_Y_START);ctx.lineTo(0,GOAL_Y_END);ctx.strokeStyle=currentMatchState.actualHomeColor;ctx.stroke();
     ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=2;ctx.strokeRect(0,GOAL_Y_START-50,100,GOAL_HEIGHT+100);
-    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(canvas.width,GOAL_Y_START);ctx.lineTo(canvas.width,GOAL_Y_END);ctx.strokeStyle=colorAway;ctx.stroke();
+    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(canvas.width,GOAL_Y_START);ctx.lineTo(canvas.width,GOAL_Y_END);ctx.strokeStyle=currentMatchState.actualAwayColor;ctx.stroke();
     ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=2;ctx.strokeRect(canvas.width-100,GOAL_Y_START-50,100,GOAL_HEIGHT+100);
 }
 
-// ── GAME LOOP ───────────────────────────────────────────────
 function gameLoop(){
-    if(modoVista==='live'||modoVista==='replay'){
-        drawPitch();
-        if(state.partidoActivo&&!state.pausado){ball.update();players.forEach(p=>p.update(ball,players));}
-        players.forEach(p=>p.draw());
-        ball.draw();
-    }
+    drawPitch();
+    if(state.partidoActivo&&!state.pausado){ball.update();players.forEach(p=>p.update(ball,players));}
+    players.forEach(p=>p.draw());
+    ball.draw();
     requestAnimationFrame(gameLoop);
 }
 gameLoop();
 
-// ── GOL VISUAL ──────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// ANIMACIÓN GOL — IGUAL AL OFFLINE
+// ════════════════════════════════════════════════════════════════
 function mostrarAnimacionGol(nombre,color){
     const overlay=document.getElementById('goal-overlay');
     const txt=document.getElementById('goal-text');
@@ -299,28 +487,28 @@ function mostrarAnimacionGol(nombre,color){
     txt.style.transform='translate(-50%,-50%) scale(1)';
     stxt.style.opacity='1';
     stxt.innerText=nombre?`⚽ ${nombre}`:'⚽ GOL';
-    playGoal();
     const cols=['#f1c40f','#e74c3c','#3498db','#2ecc71','#9b59b6','#fff'];
     for(let i=0;i<30;i++){const c=document.createElement('div');c.className='confetti-piece';c.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*30}%;background:${cols[Math.floor(Math.random()*cols.length)]};width:${Math.random()*12+6}px;height:${Math.random()*12+6}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*.5}s;animation-duration:${Math.random()+1}s;`;overlay.appendChild(c);}
     state.pausado=true;
     setTimeout(()=>{txt.style.transform='translate(-50%,-50%) scale(0)';stxt.style.opacity='0';setTimeout(()=>overlay.style.display='none',400);},2200);
-    setTimeout(()=>{state.pausado=false;ball.reset();players.forEach(p=>p.reset());},2000);
+    setTimeout(()=>{state.pausado=false;},2000);
 }
 </script>
 
+<!-- ════════════════════════════════════════════════════════════
+     MÓDULO SUPABASE — conecta el motor al online
+     ════════════════════════════════════════════════════════════ -->
 <script type="module">
 import{createClient}from'https://esm.sh/@supabase/supabase-js@2';
 const db=createClient('https://hpvpxadhbftiulwmysaw.supabase.co','sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa');
 
-const COLORS={'Universitario de Deportes':{c1:'#f3e5ab'},'Alianza Lima':{c1:'#1a237e'},'Sporting Cristal':{c1:'#5DADE2'},'FBC Melgar':{c1:'#c0392b'},'Cusco FC':{c1:'#d4af37'},'Sport Boys Association':{c1:'#fd79a8'},'Deportivo Garcilaso':{c1:'#81ecec'},'Comerciantes Unidos':{c1:'#6c5ce7'},'Cienciano':{c1:'#e74c3c'},'Sport Huancayo':{c1:'#b33939'},'ADT de Tarma':{c1:'#74b9ff'},'Atlético Grau':{c1:'#ffec13'},'UTC Cajamarca':{c1:'#f5deb3'},'Juan Pablo II College':{c1:'#f39c12'},'CD Los Chankas':{c1:'#d63031'},'FC Cajamarca':{c1:'#bdc3c7'},'Alianza Atlético Sullana':{c1:'#ecf0f1'},'Deportivo Moquegua':{c1:'#00b894'}};
-
-let currentUser=null,miEquipo=null,jornadaActiva=null,partidoActual=null,todosLosPartidos=[],realtimeChannel=null;
+let miEquipo=null, jornadaActiva=null, partidoActual=null, todosLosPartidos=[];
+let modoVista='wait', replayEventos=[];
 
 async function init(){
     const{data:{session}}=await db.auth.getSession();
     if(!session){window.location.href='login.html';return;}
-    currentUser=session.user;
-    const{data:eq}=await db.from('equipos').select('*').eq('user_id',currentUser.id).single();
+    const{data:eq}=await db.from('equipos').select('*').eq('user_id',session.user.id).single();
     miEquipo=eq;
     await cargarEstado();
     iniciarCountdown();
@@ -330,109 +518,137 @@ async function cargarEstado(){
     const{data:cfg}=await db.from('config_liga').select('*').eq('id',1).single();
     jornadaActiva=cfg;
     if(!cfg||cfg.jornada_activa===0){mostrarWaiting();return;}
-    const{data:partidos}=await db.from('jornadas').select('*').eq('temporada','2025').eq('numero_jornada',cfg.jornada_activa).order('id');
-    todosLosPartidos=partidos||[];
-    if(miEquipo){const nb=miEquipo.equipo_base||miEquipo.nombre;partidoActual=todosLosPartidos.find(p=>p.equipo_local===nb||p.equipo_visitante===nb);}
+    const{data:ps}=await db.from('jornadas').select('*').eq('temporada','2025').eq('numero_jornada',cfg.jornada_activa).order('id');
+    todosLosPartidos=ps||[];
+    if(miEquipo){
+        const nb=miEquipo.equipo_base||miEquipo.nombre;
+        partidoActual=todosLosPartidos.find(p=>p.equipo_local===nb||p.equipo_visitante===nb);
+    }
     renderMatchesList();
-    if(cfg.estado==='en_vivo')await iniciarModoVivo();
-    else if(cfg.estado==='finalizado')await iniciarModoFin();
-    else{mostrarWaiting();if(partidoActual)mostrarInfoMiPartido();}
+    if(cfg.estado==='en_vivo') iniciarPartido();
+    else if(cfg.estado==='finalizado') await mostrarFin();
+    else { mostrarWaiting(); if(partidoActual) mostrarInfoMiPartido(); }
     suscribirRealtime();
 }
 
-async function iniciarModoVivo(){
+function iniciarPartido(){
     if(!partidoActual){mostrarWaiting('Tu equipo no juega en esta jornada');return;}
     modoVista='live';
-    configurarPartido(partidoActual);
-    mostrarCanvas();
-    const{data:evts}=await db.from('eventos_partido').select('*').eq('partido_id',partidoActual.id).order('minuto');
-    eventos=evts||[];
-    eventos.forEach(ev=>{if(ev.tipo==='gol'){if(ev.es_local)state.golesAzul++;else state.golesRojo++;registrarEventoUI(ev);}});
-    actualizarScoreUI();
-    if(jornadaActiva.inicio_jornada){const e=(Date.now()-new Date(jornadaActiva.inicio_jornada).getTime())/1000;matchMinuto=Math.min(90,Math.floor(e));}
-    actualizarTimerUI(matchMinuto);
+
+    // Obtener datos de los equipos con jugadores reales
+    const homeTeam=getTeamByName(partidoActual.equipo_local);
+    const awayTeam=getTeamByName(partidoActual.equipo_visitante);
+
+    // Configurar motor (asigna especialidades + nombres reales)
+    configurarEquipos(homeTeam, awayTeam);
+
     document.getElementById('mode-badge').className='mode-badge badge-live';
     document.getElementById('mode-badge').innerText='● EN VIVO';
+    mostrarCanvas();
+
+    // Iniciar motor
+    state.golesAzul=0;state.golesRojo=0;state.tiempo=MATCH_DURATION;
     state.partidoActivo=true;state.pausado=false;
-    if(timerInterval)clearInterval(timerInterval);
-    timerInterval=setInterval(()=>{if(modoVista!=='live'){clearInterval(timerInterval);return;}matchMinuto=Math.min(90,matchMinuto+1);actualizarTimerUI(matchMinuto);if(matchMinuto>=90)clearInterval(timerInterval);},1000);
+    ball.reset();players.forEach(p=>p.reset());
+    document.getElementById('home-scorers').innerHTML='';
+    document.getElementById('away-scorers').innerHTML='';
+    timeEl.innerText="0'";
+    activarSonido();
+
+    // Hook: cuando el motor marca gol → sube a Supabase
+    window._onGol=async(equipo, jugador, minuto)=>{
+        if(!partidoActual)return;
+        await db.from('jornadas').update({
+            goles_local:state.golesAzul,
+            goles_visitante:state.golesRojo,
+            estado:'en_curso'
+        }).eq('id',partidoActual.id);
+        await db.from('eventos_partido').insert({
+            partido_id:partidoActual.id,
+            minuto, tipo:'gol',
+            equipo:equipo==='azul'?homeTeam.name:awayTeam.name,
+            jugador:jugador||'Jugador',
+            es_local:equipo==='azul',
+            temporada:'2025'
+        });
+    };
+
+    // Hook: cuando termina el partido
+    window._onFinPartido=async()=>{
+        if(!partidoActual)return;
+        await db.from('jornadas').update({
+            goles_local:state.golesAzul,
+            goles_visitante:state.golesRojo,
+            estado:'finalizado'
+        }).eq('id',partidoActual.id);
+        setTimeout(()=>mostrarFin(),1500);
+    };
 }
 
-async function iniciarModoFin(){
+async function mostrarFin(){
     modoVista='fin';state.partidoActivo=false;
+    window._onGol=null;window._onFinPartido=null;
     if(!partidoActual){mostrarWaiting('Jornada finalizada.');return;}
-    state.golesAzul=partidoActual.goles_local??0;state.golesRojo=partidoActual.goles_visitante??0;
-    configurarPartido(partidoActual);
+    const{data:p}=await db.from('jornadas').select('*').eq('id',partidoActual.id).single();
+    if(p)partidoActual=p;
+    const homeTeam=getTeamByName(partidoActual.equipo_local);
+    const awayTeam=getTeamByName(partidoActual.equipo_visitante);
+    const gl=partidoActual.goles_local??state.golesAzul;
+    const gv=partidoActual.goles_visitante??state.golesRojo;
+    document.getElementById('canvas-wrap').style.display='none';
+    document.getElementById('ui-panel').style.display='none';
+    document.getElementById('live-events').style.display='none';
     document.getElementById('waiting-panel').style.display='none';
     document.getElementById('fin-panel').style.display='block';
     document.getElementById('fin-equipos').innerText=`${partidoActual.equipo_local} vs ${partidoActual.equipo_visitante}`;
-    document.getElementById('fin-score').innerText=`${state.golesAzul} — ${state.golesRojo}`;
+    document.getElementById('fin-score').innerText=`${gl} — ${gv}`;
     const{data:evts}=await db.from('eventos_partido').select('*').eq('partido_id',partidoActual.id).order('minuto');
-    eventos=evts||[];
-    const goles=eventos.filter(e=>e.tipo==='gol');
-    if(goles.length)document.getElementById('fin-goles').innerHTML=goles.map(g=>`<span style="color:${g.es_local?colorHome:colorAway}">⚽ ${g.minuto}' ${g.jugador||''}${g.es_local?' (L)':' (V)'}</span>`).join(' · ');
+    replayEventos=evts||[];
+    const goles=replayEventos.filter(e=>e.tipo==='gol');
+    if(goles.length) document.getElementById('fin-goles').innerHTML=goles.map(g=>`<span style="color:${g.es_local?homeTeam.c1:awayTeam.c1}">⚽ ${g.minuto}' ${g.jugador||''}</span>`).join(' · ');
+    renderMatchesList();
 }
 
+// REPLAY — reproduce los goles en sus minutos exactos sobre el motor corriendo
 window.iniciarReplay=function(){
-    if(!eventos.length){alert('No hay eventos para el replay');return;}
+    if(!replayEventos.length){alert('No hay eventos para replay');return;}
+    const homeTeam=getTeamByName(partidoActual.equipo_local);
+    const awayTeam=getTeamByName(partidoActual.equipo_visitante);
     modoVista='replay';
     document.getElementById('fin-panel').style.display='none';
     mostrarCanvas();
-    state.golesAzul=0;state.golesRojo=0;actualizarScoreUI();
-    document.getElementById('home-scorers').innerHTML='';document.getElementById('away-scorers').innerHTML='';
     document.getElementById('mode-badge').className='mode-badge badge-replay';
     document.getElementById('mode-badge').innerText='🎬 REPLAY';
+    document.getElementById('home-scorers').innerHTML='';
+    document.getElementById('away-scorers').innerHTML='';
+    // Configurar equipos de nuevo
+    configurarEquipos(homeTeam, awayTeam);
+    state.golesAzul=0;state.golesRojo=0;state.tiempo=MATCH_DURATION;
     state.partidoActivo=true;state.pausado=false;
-    replayIdx=0;reproducirEvento();
+    ball.reset();players.forEach(p=>p.reset());
+    timeEl.innerText="0'";
+    // Deshabilitar hooks de Supabase
+    window._onGol=null;window._onFinPartido=null;
+    // Programar goles en sus minutos exactos
+    replayEventos.filter(e=>e.tipo==='gol').forEach(ev=>{
+        const segundos=Math.floor((ev.minuto/90)*90);
+        setTimeout(()=>{
+            const eq=ev.es_local?'azul':'rojo';
+            const scorerFake={team:eq,playerName:ev.jugador||'Jugador',rolBase:'Delantero'};
+            window.anotarGol(eq,scorerFake,null);
+        },segundos*1000+200);
+    });
 };
 
-function reproducirEvento(){
-    if(replayIdx>=eventos.length){setTimeout(()=>{document.getElementById('mode-badge').innerText='✅ FIN';mostrarAnimacionGol('Fin del partido','#f1c40f');},1000);return;}
-    const ev=eventos[replayIdx++];
-    actualizarTimerUI(ev.minuto);
-    if(ev.tipo==='gol'){if(ev.es_local)state.golesAzul++;else state.golesRojo++;actualizarScoreUI();registrarEventoUI(ev);mostrarAnimacionGol(ev.jugador,ev.es_local?colorHome:colorAway);setTimeout(reproducirEvento,3500);}
-    else setTimeout(reproducirEvento,600);
-}
-
 function suscribirRealtime(){
-    if(realtimeChannel)db.removeChannel(realtimeChannel);
-    realtimeChannel=db.channel('partido-vivo')
-        .on('postgres_changes',{event:'INSERT',schema:'public',table:'eventos_partido',filter:partidoActual?`partido_id=eq.${partidoActual.id}`:undefined},payload=>{
-            const ev=payload.new;
-            if(ev.tipo==='gol'){if(ev.es_local)state.golesAzul++;else state.golesRojo++;actualizarScoreUI();registrarEventoUI(ev);mostrarAnimacionGol(ev.jugador,ev.es_local?colorHome:colorAway);}
-        })
+    db.channel('config-live')
         .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_liga'},payload=>{
             jornadaActiva=payload.new;
-            if(payload.new.estado==='en_vivo'&&modoVista==='wait')cargarEstado();
-            else if(payload.new.estado==='finalizado'&&modoVista==='live'){modoVista='fin';setTimeout(()=>iniciarModoFin(),2000);}
-        })
-        .subscribe();
-}
-
-function configurarPartido(p){
-    colorHome=COLORS[p.equipo_local]?.c1||'#3498db';
-    colorAway=COLORS[p.equipo_visitante]?.c1||'#e74c3c';
-    nombreHome=p.equipo_local;nombreAway=p.equipo_visitante;
-    actualizarScoreUI();
-    players.forEach(pl=>{if(pl.team==='azul')pl.color=colorHome;if(pl.team==='rojo')pl.color=colorAway;});
-}
-
-function actualizarScoreUI(){
-    const az=document.getElementById('scoreAzul'),rj=document.getElementById('scoreRojo');
-    az.innerText=`${nombreHome.substring(0,12)}: ${state.golesAzul}`;az.style.color=colorHome;
-    rj.innerText=`${nombreAway.substring(0,12)}: ${state.golesRojo}`;rj.style.color=colorAway;
-}
-
-function actualizarTimerUI(min){
-    const el=document.getElementById('timeEl');
-    el.innerText=`${min}'`;
-    el.style.color=modoVista==='live'?'#2ecc71':modoVista==='replay'?'#f1c40f':'#ecf0f1';
-}
-
-function registrarEventoUI(ev){
-    const g=`<div style="margin-top:2px;">⚽ ${ev.minuto}' ${ev.jugador||'Jugador'}</div>`;
-    if(ev.es_local)document.getElementById('home-scorers').innerHTML+=g;
-    else document.getElementById('away-scorers').innerHTML+=g;
+            if(payload.new.estado==='en_vivo'&&modoVista==='wait') cargarEstado();
+            else if(payload.new.estado==='finalizado'&&modoVista==='live'){
+                modoVista='fin';setTimeout(()=>mostrarFin(),2000);
+            }
+        }).subscribe();
 }
 
 function mostrarCanvas(){
@@ -466,8 +682,8 @@ function renderMatchesList(){
     container.innerHTML=todosLosPartidos.map(p=>{
         const esMio=nb&&(p.equipo_local===nb||p.equipo_visitante===nb);
         const fin=p.estado==='finalizado',vivo=p.estado==='en_curso';
-        const score=fin?`<span class="ms">${p.goles_local} — ${p.goles_visitante}</span>`:`<span class="ms-pending">${vivo?'EN VIVO':'VS'}</span>`;
-        return `<div class="match-item ${esMio?'mi-partido':''} ${fin?'finalizado':''} ${vivo?'en-vivo':''}" onclick="verPartido('${p.id}')">
+        const score=fin?`<span class="ms">${p.goles_local??0} — ${p.goles_visitante??0}</span>`:`<span class="ms-pending">${vivo?'EN VIVO':'VS'}</span>`;
+        return `<div class="match-item ${esMio?'mi-partido':''} ${fin?'finalizado':''} ${vivo?'en-vivo':''}">
             <span class="mt home ${esMio&&p.equipo_local===nb?'mi-equipo':''}">${p.equipo_local}</span>
             ${score}
             <span class="mt ${esMio&&p.equipo_visitante===nb?'mi-equipo':''}">${p.equipo_visitante}</span>
@@ -475,19 +691,10 @@ function renderMatchesList(){
     }).join('');
 }
 
-window.verPartido=async function(id){
-    const p=todosLosPartidos.find(x=>x.id===id);
-    if(!p)return;
-    partidoActual=p;configurarPartido(p);
-    if(p.estado==='finalizado'){state.golesAzul=p.goles_local;state.golesRojo=p.goles_visitante;await iniciarModoFin();}
-    else if(jornadaActiva?.estado==='en_vivo')await iniciarModoVivo();
-};
-
 function iniciarCountdown(){
     function tick(){
         if(modoVista!=='wait')return;
-        const now=new Date(),target=new Date();
-        target.setHours(19,0,0,0);
+        const now=new Date(),target=new Date();target.setHours(19,0,0,0);
         let diff=target-now;if(diff<0)diff+=86400000;
         const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
         document.getElementById('countdown').innerText=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
