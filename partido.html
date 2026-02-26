@@ -6,121 +6,88 @@
     <title>Liga 1 — Partido en Vivo</title>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #1a1a1a; color: white; font-family: 'Rajdhani', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 10px; overflow-x: hidden; }
-
-        /* HEADER */
-        .top-bar { width: 800px; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; }
-        .top-logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; background: linear-gradient(135deg, #f1c40f, #e67e22); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .top-nav a { color: rgba(255,255,255,.4); text-decoration: none; font-size: 13px; font-weight: 600; margin-left: 16px; transition: color .2s; }
-        .top-nav a:hover { color: #f1c40f; }
-
-        /* SCORE BAR */
-        #ui-panel { display: flex; justify-content: space-between; align-items: center; width: 800px; background: #2c3e50; padding: 12px 20px; border-radius: 10px; margin-bottom: 6px; box-shadow: 0 4px 10px rgba(0,0,0,.4); }
-        .score-board { font-size: 22px; font-weight: bold; display: flex; gap: 16px; align-items: center; }
-        .team-home { color: #3498db; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
-        .team-away { color: #e74c3c; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
-        .timer { font-size: 24px; font-weight: bold; color: #ecf0f1; background: rgba(0,0,0,.4); padding: 5px 14px; border-radius: 8px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; }
-        .timer.live { color: #2ecc71; animation: pulse-timer 1s infinite; }
-        .timer.replay { color: #f1c40f; }
-        @keyframes pulse-timer { 0%,100%{opacity:1;} 50%{opacity:.6;} }
-
-        /* MODO BADGE */
-        .mode-badge { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 2px; padding: 3px 10px; border-radius: 5px; }
-        .badge-live  { background: #c0392b; color: #fff; animation: blink-bg .8s infinite; }
-        .badge-replay { background: #8e44ad; color: #fff; }
-        .badge-wait  { background: #2c3e50; border: 1px solid #f1c40f; color: #f1c40f; }
-        @keyframes blink-bg { 0%,100%{background:#c0392b;} 50%{background:#e74c3c;} }
-
-        /* EVENTOS BAND */
-        #live-events { display: flex; justify-content: space-between; width: 800px; padding: 8px 16px; font-size: 13px; margin-bottom: 6px; background: rgba(44,62,80,.8); border-radius: 8px; min-height: 44px; border: 2px solid #34495e; }
-        #home-scorers { color: #3498db; width: 48%; text-align: left; }
-        #away-scorers { color: #e74c3c; width: 48%; text-align: right; }
-
-        /* CANVAS */
-        canvas { background-color: #27ae60; border: 4px solid #fff; border-radius: 4px; box-shadow: 0 10px 20px rgba(0,0,0,.5); display: block; }
-
-        /* GOL OVERLAY */
-        #goal-overlay { display: none; position: absolute; width: 800px; height: 500px; z-index: 500; pointer-events: none; overflow: hidden; background: radial-gradient(ellipse at center, rgba(241,196,15,.3) 0%, rgba(0,0,0,.7) 100%); }
-        #goal-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0); font-family: 'Bebas Neue', sans-serif; font-size: 120px; color: #f1c40f; text-shadow: 0 0 60px rgba(241,196,15,1), 4px 4px 0 #000; white-space: nowrap; transition: transform .3s cubic-bezier(.34,1.56,.64,1); letter-spacing: 8px; }
-        #goal-scorer-text { position: absolute; top: 62%; left: 50%; transform: translateX(-50%); font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: white; text-shadow: 2px 2px 0 #000; letter-spacing: 3px; opacity: 0; transition: opacity .4s ease .3s; }
-        .confetti-piece { position: absolute; opacity: 0; animation: confettiFall 1.5s ease-out forwards; }
-        @keyframes confettiFall { 0%{opacity:1;transform:translateY(-20px) rotate(0);} 100%{opacity:0;transform:translateY(520px) rotate(720deg);} }
-
-        /* WAITING PANEL */
-        #waiting-panel { width: 800px; background: linear-gradient(135deg, rgba(241,196,15,.07), rgba(230,126,34,.04)); border: 1px solid rgba(241,196,15,.2); border-radius: 16px; padding: 48px 32px; text-align: center; }
-        .wait-icon { font-size: 64px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
-        @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
-        .wait-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 4px; color: #f1c40f; margin-bottom: 8px; }
-        .wait-desc { color: rgba(255,255,255,.4); font-size: 15px; margin-bottom: 24px; }
-        #countdown { font-family: 'Bebas Neue', sans-serif; font-size: 56px; color: #f1c40f; letter-spacing: 4px; }
-        .wait-match { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 16px 24px; margin: 20px auto; max-width: 400px; }
-        .wait-match-teams { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 6px; }
-        .wait-match-sub { color: rgba(255,255,255,.3); font-size: 12px; letter-spacing: 1px; }
-
-        /* PARTIDOS LISTA */
-        .matches-list { width: 800px; margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .match-item { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 10px; padding: 10px 14px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; cursor: pointer; transition: border-color .2s; }
-        .match-item:hover { border-color: rgba(241,196,15,.4); }
-        .match-item.mi-partido { border-color: #f1c40f; background: rgba(241,196,15,.06); }
-        .match-item.en-vivo { border-left: 3px solid #2ecc71; }
-        .match-item.finalizado { border-left: 3px solid rgba(255,255,255,.2); opacity: .7; }
-        .mi-equipo { color: #f1c40f; }
-        .mt { font-family: 'Bebas Neue', sans-serif; font-size: 14px; }
-        .mt.home { text-align: right; }
-        .mt.away { text-align: left; }
-        .ms { font-family: 'Bebas Nye', sans-serif; font-size: 18px; text-align: center; white-space: nowrap; }
-        .ms-pending { color: rgba(255,255,255,.25); font-size: 11px; }
-
-        /* FIN PARTIDO */
-        #fin-panel { display: none; width: 800px; background: linear-gradient(135deg,#1a1a1a,#0a0a0a); border: 2px solid #f1c40f; border-radius: 16px; padding: 32px; text-align: center; margin-top: 12px; }
-        .fin-title { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 5px; color: #f1c40f; }
-        .fin-score { font-family: 'Bebas Neue', sans-serif; font-size: 64px; letter-spacing: 8px; margin: 8px 0; }
-        .fin-equipos { font-size: 18px; color: rgba(255,255,255,.5); margin-bottom: 16px; }
-        .fin-btns { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
-        .btn { padding: 11px 24px; border-radius: 10px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; cursor: pointer; border: none; transition: .2s; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; color: #fff; }
-        .btn-gold { background: #f1c40f; color: #000; }
-        .btn-gold:hover { background: #f39c12; transform: translateY(-1px); }
-        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,.2); }
-        .btn-outline:hover { border-color: #f1c40f; color: #f1c40f; }
-
-        @media (max-width: 820px) {
-            .top-bar, #ui-panel, #live-events, canvas, #goal-overlay, #waiting-panel, .matches-list, #fin-panel { width: 100%; }
-            canvas { width: 100%; height: auto; }
-            .matches-list { grid-template-columns: 1fr; }
-        }
+        :root{--gold:#f1c40f;--dark:#1a1a1a;--mid:#2c3e50;--blue:#3498db;--red:#e74c3c;--green:#27ae60;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:var(--dark);color:white;font-family:'Rajdhani',sans-serif;display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:10px;overflow-x:hidden;}
+        .top-bar{width:800px;display:flex;justify-content:space-between;align-items:center;padding:10px 0;}
+        .top-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;background:linear-gradient(135deg,#f1c40f,#e67e22);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+        .top-nav a{color:rgba(255,255,255,.4);text-decoration:none;font-size:13px;font-weight:600;margin-left:16px;transition:color .2s;}
+        .top-nav a:hover{color:#f1c40f;}
+        #ui-panel{display:flex;justify-content:space-between;align-items:center;width:800px;background:var(--mid);padding:12px 20px;border-radius:10px;margin-bottom:6px;box-shadow:0 4px 10px rgba(0,0,0,.4);}
+        .score-board{font-size:22px;font-weight:bold;display:flex;gap:16px;align-items:center;}
+        #scoreAzul{color:var(--blue);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
+        #scoreRojo{color:var(--red);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;}
+        #timeEl{font-size:24px;font-weight:bold;color:#ecf0f1;background:rgba(0,0,0,.4);padding:5px 14px;border-radius:8px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;}
+        .mode-badge{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:3px 10px;border-radius:5px;}
+        .badge-live{background:#c0392b;color:#fff;animation:blink-bg .8s infinite;}
+        .badge-replay{background:#8e44ad;color:#fff;}
+        @keyframes blink-bg{0%,100%{background:#c0392b;}50%{background:#e74c3c;}}
+        #live-events{display:flex;justify-content:space-between;width:800px;padding:8px 16px;font-size:13px;margin-bottom:6px;background:rgba(44,62,80,.8);border-radius:8px;min-height:44px;border:2px solid #34495e;}
+        #home-scorers{color:var(--blue);width:48%;text-align:left;}
+        #away-scorers{color:var(--red);width:48%;text-align:right;}
+        #canvas-wrap{position:relative;}
+        canvas{background-color:#27ae60;border:4px solid #fff;border-radius:4px;box-shadow:0 10px 20px rgba(0,0,0,.5);display:block;}
+        #goal-overlay{display:none;position:absolute;top:0;left:0;width:800px;height:500px;z-index:500;pointer-events:none;overflow:hidden;background:radial-gradient(ellipse at center,rgba(241,196,15,.3) 0%,rgba(0,0,0,.7) 100%);}
+        #goal-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);font-family:'Bebas Neue',sans-serif;font-size:120px;color:#f1c40f;text-shadow:0 0 60px rgba(241,196,15,1),4px 4px 0 #000;white-space:nowrap;transition:transform .3s cubic-bezier(.34,1.56,.64,1);letter-spacing:8px;}
+        #goal-scorer-text{position:absolute;top:62%;left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:28px;color:white;text-shadow:2px 2px 0 #000;letter-spacing:3px;opacity:0;transition:opacity .4s ease .3s;}
+        .confetti-piece{position:absolute;opacity:0;animation:confettiFall 1.5s ease-out forwards;}
+        @keyframes confettiFall{0%{opacity:1;transform:translateY(-20px) rotate(0);}100%{opacity:0;transform:translateY(520px) rotate(720deg);}}
+        #waiting-panel{width:800px;background:linear-gradient(135deg,rgba(241,196,15,.07),rgba(230,126,34,.04));border:1px solid rgba(241,196,15,.2);border-radius:16px;padding:48px 32px;text-align:center;}
+        .wait-icon{font-size:64px;margin-bottom:16px;animation:float 3s ease-in-out infinite;}
+        @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
+        .wait-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:4px;color:#f1c40f;margin-bottom:8px;}
+        .wait-desc{color:rgba(255,255,255,.4);font-size:15px;margin-bottom:24px;}
+        #countdown{font-family:'Bebas Neue',sans-serif;font-size:56px;color:#f1c40f;letter-spacing:4px;}
+        .wait-match{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 24px;margin:20px auto;max-width:400px;}
+        .wait-match-teams{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;margin-bottom:6px;}
+        .wait-match-sub{color:rgba(255,255,255,.3);font-size:12px;letter-spacing:1px;}
+        .matches-list{width:800px;margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+        .match-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:10px 14px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;cursor:pointer;transition:border-color .2s;}
+        .match-item:hover{border-color:rgba(241,196,15,.4);}
+        .match-item.mi-partido{border-color:#f1c40f;background:rgba(241,196,15,.06);}
+        .match-item.en-vivo{border-left:3px solid #2ecc71;}
+        .match-item.finalizado{opacity:.7;}
+        .mt{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.5px;}
+        .mt.home{text-align:right;}
+        .mt.mi-equipo{color:#f1c40f;}
+        .ms{font-family:'Bebas Neue',sans-serif;font-size:17px;text-align:center;white-space:nowrap;}
+        .ms-pending{color:rgba(255,255,255,.25);font-size:11px;text-align:center;}
+        #fin-panel{display:none;width:800px;background:linear-gradient(135deg,#1a1a1a,#0a0a0a);border:2px solid #f1c40f;border-radius:16px;padding:32px;text-align:center;margin-top:12px;}
+        .fin-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:5px;color:#f1c40f;}
+        .fin-score{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:8px;margin:8px 0;}
+        .fin-equipos{font-size:18px;color:rgba(255,255,255,.5);margin-bottom:8px;}
+        .fin-btns{display:flex;gap:12px;justify-content:center;margin-top:20px;}
+        .btn{padding:11px 24px;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;cursor:pointer;border:none;transition:.2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:#fff;}
+        .btn-gold{background:#f1c40f;color:#000;}
+        .btn-gold:hover{background:#f39c12;transform:translateY(-1px);}
+        .btn-outline{background:transparent;border:1px solid rgba(255,255,255,.2);}
+        .btn-outline:hover{border-color:#f1c40f;color:#f1c40f;}
+        @media(max-width:820px){.top-bar,#ui-panel,#live-events,#canvas-wrap,#waiting-panel,.matches-list,#fin-panel{width:100%;}canvas{width:100%;height:auto;}.matches-list{grid-template-columns:1fr;}}
     </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div class="top-bar">
     <div class="top-logo">⚽ LIGA 1 SIM</div>
-    <nav class="top-nav">
-        <a href="dashboard.html">Mi Equipo</a>
-        <a href="jornadas.html">Jornadas</a>
-    </nav>
+    <nav class="top-nav"><a href="dashboard.html">Mi Equipo</a><a href="jornadas.html">Jornadas</a></nav>
 </div>
 
-<!-- SCORE BAR -->
 <div id="ui-panel" style="display:none;">
     <div class="score-board">
-        <span id="scoreHome" class="team-home">Local: 0</span>
+        <span id="scoreAzul">Local: 0</span>
         <span style="color:rgba(255,255,255,.3);">—</span>
-        <span id="scoreAway" class="team-away">Visita: 0</span>
+        <span id="scoreRojo">Visita: 0</span>
     </div>
-    <span class="timer" id="timer">0'</span>
+    <span id="timeEl">0'</span>
     <span class="mode-badge badge-live" id="mode-badge">● EN VIVO</span>
 </div>
 
-<!-- EVENTOS -->
 <div id="live-events" style="display:none;">
     <div id="home-scorers"></div>
     <div id="away-scorers"></div>
 </div>
 
-<!-- CANVAS WRAPPER -->
-<div style="position:relative; display:none;" id="canvas-wrap">
+<div id="canvas-wrap" style="display:none;">
     <canvas id="gameCanvas" width="800" height="500"></canvas>
     <div id="goal-overlay">
         <div id="goal-text">⚽ GOL</div>
@@ -128,19 +95,17 @@
     </div>
 </div>
 
-<!-- FIN PARTIDO -->
 <div id="fin-panel">
-    <div class="fin-title" id="fin-titulo">Partido Finalizado</div>
+    <div class="fin-title">Partido Finalizado</div>
     <div class="fin-equipos" id="fin-equipos">—</div>
     <div class="fin-score" id="fin-score">0 — 0</div>
-    <div id="fin-goles" style="margin-top:8px; color:rgba(255,255,255,.5); font-size:13px;"></div>
+    <div id="fin-goles" style="margin-top:8px;color:rgba(255,255,255,.5);font-size:13px;"></div>
     <div class="fin-btns">
-        <button class="btn btn-gold" id="btn-replay" onclick="iniciarReplay()">🎬 Ver Replay</button>
+        <button class="btn btn-gold" onclick="iniciarReplay()">🎬 Ver Replay</button>
         <a href="jornadas.html" class="btn btn-outline">← Jornadas</a>
     </div>
 </div>
 
-<!-- WAITING PANEL -->
 <div id="waiting-panel">
     <div class="wait-icon">⚽</div>
     <div class="wait-title">Próxima Jornada</div>
@@ -153,576 +118,382 @@
     </div>
 </div>
 
-<!-- LISTA DE PARTIDOS -->
 <div class="matches-list" id="matches-list"></div>
 
-<script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const SUPABASE_URL = 'https://hpvpxadhbftiulwmysaw.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa';
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+<script>
+// ── CONSTANTES ──────────────────────────────────────────────
+const GOAL_Y_START=175,GOAL_Y_END=325,GOAL_HEIGHT=150;
+let state={golesAzul:0,golesRojo:0,partidoActivo:false,pausado:false,upgrades:{speed:false,shoot:false,gk:false}};
+let modoVista='wait',colorHome='#3498db',colorAway='#e74c3c',nombreHome='Local',nombreAway='Visita';
+let matchMinuto=0,timerInterval=null,eventos=[],replayIdx=0;
+const coinsEl={innerText:''};
 
-// ─── CONSTANTES ────────────────────────────────────────────
-const CANVAS_W = 800, CANVAS_H = 500;
-const GOAL_Y_START = 175, GOAL_Y_END = 325, GOAL_HEIGHT = 150;
-const MATCH_DURATION = 90;      // segundos reales por partido (= 90 min comprimidos)
-const MIN_PER_SEC = 1;          // 1 segundo real = 1 minuto de juego
+// ── CANVAS ──────────────────────────────────────────────────
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
 
-// Velocidad del replay: cuántos eventos por segundo se reproducen
-const REPLAY_SPEED_MS = 800;
+// ── FORMACIONES ─────────────────────────────────────────────
+const formacionesDB={"4-4-2":[{x:130,y:100,rol:'Lateral'},{x:110,y:200,rol:'Central'},{x:110,y:300,rol:'Central'},{x:130,y:400,rol:'Lateral'},{x:250,y:100,rol:'Medio'},{x:220,y:200,rol:'Medio'},{x:220,y:300,rol:'Medio'},{x:250,y:400,rol:'Medio'},{x:350,y:180,rol:'Delantero'},{x:350,y:320,rol:'Delantero'}]};
 
-// ─── ESTADO ────────────────────────────────────────────────
-let currentUser = null;
-let miEquipo = null;             // datos del equipo del usuario
-let jornadaActiva = null;        // config_liga row
-let partidoActual = null;        // jornada row (el partido del usuario)
-let todosLosPartidos = [];       // todos los partidos de la jornada
-let eventos = [];                // eventos del partido actual cargados
-let replayIdx = 0;
-let modoVista = 'wait';          // 'wait' | 'live' | 'replay' | 'fin'
-let matchMinuto = 0;
-let scoreHome = 0, scoreAway = 0;
-let realtimeChannel = null;
+// ── SONIDO ──────────────────────────────────────────────────
+const AudioCtx=window.AudioContext||window.webkitAudioContext;
+const audioCtx=new AudioCtx();
+let soundEnabled=false;
+function playKick(){if(!soundEnabled)return;const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.type='triangle';o.frequency.setValueAtTime(150,audioCtx.currentTime);o.frequency.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.1);g.gain.setValueAtTime(.3,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+.1);o.start();o.stop(audioCtx.currentTime+.1);}
+function playGoal(){if(!soundEnabled)return;const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*2,audioCtx.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;const n=audioCtx.createBufferSource();n.buffer=buf;const f=audioCtx.createBiquadFilter();f.type='bandpass';f.frequency.value=800;const g=audioCtx.createGain();n.connect(f);f.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(0,audioCtx.currentTime);g.gain.linearRampToValueAtTime(.4,audioCtx.currentTime+.2);g.gain.exponentialRampToValueAtTime(.01,audioCtx.currentTime+2);n.start();}
 
-// ─── CANVAS ────────────────────────────────────────────────
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-// Colores de equipos (se asignan al cargar partido)
-let colorHome = '#3498db', colorAway = '#e74c3c';
-let nombreHome = 'Local', nombreAway = 'Visita';
-
-// ─── INIT ──────────────────────────────────────────────────
-async function init() {
-    const { data: { session } } = await db.auth.getSession();
-    if (!session) { window.location.href = 'login.html'; return; }
-    currentUser = session.user;
-
-    // Cargar equipo del usuario
-    const { data: eq } = await db.from('equipos').select('*').eq('user_id', currentUser.id).single();
-    miEquipo = eq;
-
-    await cargarEstado();
-    iniciarCountdown();
-    gameLoop();
+// ── MOTOR: Ball ─────────────────────────────────────────────
+class Ball{
+    constructor(){this.reset();this.radius=6;this.color='#fff';this.friction=0.98;}
+    reset(){this.x=canvas.width/2;this.y=canvas.height/2;this.vx=0;this.vy=0;this.lastTouch=null;this.assistTouch=null;}
+    update(){
+        this.x+=this.vx;this.y+=this.vy;this.vx*=this.friction;this.vy*=this.friction;
+        if(this.y-this.radius<0){this.y=this.radius;this.vy*=-1;}
+        else if(this.y+this.radius>canvas.height){this.y=canvas.height-this.radius;this.vy*=-1;}
+        if(this.x-this.radius<0){
+            if(this.y>GOAL_Y_START&&this.y<GOAL_Y_END){ball.reset();players.forEach(p=>p.reset());}
+            else{this.x=this.radius;this.vx*=-1;}
+        }
+        if(this.x+this.radius>canvas.width){
+            if(this.y>GOAL_Y_START&&this.y<GOAL_Y_END){ball.reset();players.forEach(p=>p.reset());}
+            else{this.x=canvas.width-this.radius;this.vx*=-1;}
+        }
+    }
+    draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);ctx.fillStyle=this.color;ctx.fill();ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.stroke();ctx.closePath();}
 }
 
-// ─── CARGAR ESTADO ─────────────────────────────────────────
-async function cargarEstado() {
-    // Config liga
-    const { data: cfg } = await db.from('config_liga').select('*').eq('id', 1).single();
-    jornadaActiva = cfg;
-
-    if (!cfg || cfg.jornada_activa === 0) {
-        mostrarWaiting('Sin jornada programada aún');
-        return;
+// ── MOTOR: Player ───────────────────────────────────────────
+class Player{
+    constructor(bx,by,color,team,rolBase,numero){this.baseX=bx;this.baseY=by;this.x=bx;this.y=by;this.color=color;this.team=team;this.rolBase=rolBase;this.numero=numero;this.type='Novato';this.subType='Basico';this.cooldown=0;this.playerName=null;this.wallPassActive=0;this.resetStats();}
+    resetStats(){this.radius=9;this.speed=2.5;this.kickPower=5;this.rangoTiro=250;this.precisionPase=0.5;this.saveSkill=0.2;this.wallPassActive=0;}
+    reset(){this.x=this.baseX;this.y=this.baseY;this.cooldown=0;this.wallPassActive=0;}
+    aplicarEspecialidad(t,s){
+        this.type=t;this.subType=s;
+        const m={'Ofensivo':[11,2.5,6,0.4,0.8],'Defensivo':[15,3.5,8,0.9,0.2],'Central':[13,1.6,7,0.2,0.5],'Lateral Ofensivo':[9,3.5,6,0.2,0.8],'Lateral Defensivo':[9,3.2,4,0.2,0.3],'MCD':[11,2.5,5,0.2,0.5],'Mediapunta':[9,2.8,6,0.2,1.0],'Box to Box':[10,3.2,7,0.2,0.6],'Extremo':[8,4.0,5,0.2,0.8],'Centrodelantero':[13,1.6,9,0.2,0.5],'Segundo Delantero':[9,3.2,6,0.2,0.6]};
+        if(m[s]){[this.radius,this.speed,this.kickPower,this.saveSkill,this.precisionPase]=m[s];}
+        if(s==='Central')this.rangoTiro=0;
+        if(s==='Box to Box')this.rangoTiro=300;
+        if(s==='Centrodelantero')this.rangoTiro=180;
+        if(s==='Segundo Delantero')this.rangoTiro=350;
     }
-
-    // Todos los partidos de la jornada activa
-    const { data: partidos } = await db
-        .from('jornadas')
-        .select('*')
-        .eq('temporada', '2025')
-        .eq('numero_jornada', cfg.jornada_activa)
-        .order('id');
-
-    todosLosPartidos = partidos || [];
-
-    // Encontrar el partido del usuario
-    if (miEquipo) {
-        const equipoBase = EQUIPO_BASE_NAMES[miEquipo.equipo_base] || miEquipo.nombre;
-        partidoActual = todosLosPartidos.find(p =>
-            p.equipo_local === equipoBase || p.equipo_visitante === equipoBase
-        );
+    update(ballObj,allPlayers){
+        if(this.cooldown>0)this.cooldown--;
+        if(state.pausado)return;
+        const myTeam=allPlayers.filter(p=>p.team===this.team);
+        const attackDir=this.team==='azul'?1:-1;
+        const enemyGoalX=this.team==='azul'?canvas.width:0;
+        const enemyGoalY=GOAL_Y_START+GOAL_HEIGHT/2;
+        let targetX=this.baseX,targetY=this.baseY,spd=this.speed;
+        if(this.rolBase==='Portero'){
+            targetX=this.baseX;
+            let err=Math.random()>this.saveSkill?(Math.random()-.5)*60:0;
+            targetY=Math.max(GOAL_Y_START,Math.min(GOAL_Y_END,ballObj.y+err));
+        } else {
+            let cl=myTeam.reduce((c,p)=>p.rolBase==='Portero'?c:Math.hypot(p.x-ballObj.x,p.y-ballObj.y)<Math.hypot(c.x-ballObj.x,c.y-ballObj.y)?p:c,myTeam[1]||myTeam[0]);
+            const bOff=(ballObj.x-canvas.width/2)*0.4;
+            const atk=(this.team==='azul'&&ballObj.x>canvas.width/2)||(this.team==='rojo'&&ballObj.x<canvas.width/2);
+            if(this.wallPassActive>0)this.wallPassActive--;
+            if(this===cl){targetX=ballObj.x;targetY=ballObj.y;}
+            else if(this.subType==='Central'){targetX=this.baseX+bOff*.1;}
+            else if(this.subType==='Lateral Ofensivo'){targetX=atk?enemyGoalX-attackDir*150:this.baseX+bOff*.8;spd=atk?spd*1.4:spd*.8;}
+            else if(this.subType==='Lateral Defensivo'){targetX=this.baseX+bOff*.15;targetY=this.baseY+(ballObj.y-this.baseY)*.3;spd*=1.28;}
+            else if(this.subType==='MCD'){targetX=this.baseX+bOff*.15;let dB=Math.hypot(ballObj.x-this.x,ballObj.y-this.y),dCB=Math.hypot(cl.x-ballObj.x,cl.y-ballObj.y);if(!atk){if(dCB<25){targetX=this.baseX;targetY=this.baseY+(ballObj.y-this.baseY)*.2;}else if(dB<200){targetX=ballObj.x;targetY=ballObj.y;spd*=1.4;}else targetY=this.baseY+(ballObj.y-this.baseY)*.5;}else targetY=this.baseY+(ballObj.y-this.baseY)*.3;}
+            else if(this.subType==='Mediapunta'){targetX=this.baseX+bOff*.6;targetY=this.baseY+(ballObj.y-this.baseY)*.5;}
+            else if(this.subType==='Box to Box'){targetX=atk?enemyGoalX-attackDir*200:this.baseX;targetY=this.baseY+(ballObj.y-this.baseY)*.4;}
+            else if(this.subType==='Extremo'){targetX=atk?enemyGoalX-attackDir*90:this.baseX+bOff*.9;spd=atk?spd*1.6:spd*1.4;targetY=myTeam.filter(p=>p.subType==='Extremo').indexOf(this)===0?50:canvas.height-50;}
+            else if(this.subType==='Centrodelantero'){targetX=enemyGoalX-attackDir*80;if(atk){let bY=this.y,mS=-Infinity;const en=allPlayers.filter(p=>p.team!==this.team);for(let tY=120;tY<=canvas.height-120;tY+=30){let sc=Math.min(...en.map(e=>Math.hypot(e.x-targetX,e.y-tY)))-Math.abs(canvas.height/2-tY)*.5;if(sc>mS){mS=sc;bY=tY;}}targetY=bY;}else targetY=Math.max(80,Math.min(canvas.height-80,ballObj.y+(this.baseY<canvas.height/2?-60:60)));}
+            else if(this.subType==='Segundo Delantero'){targetX=enemyGoalX-attackDir*180;if(atk){let bY=this.y,mS=-Infinity;const en=allPlayers.filter(p=>p.team!==this.team),ot=myTeam.filter(p=>p!==this&&p.subType==='Segundo Delantero');for(let tY=100;tY<=canvas.height-100;tY+=40){let sc=Math.min(...en.map(e=>Math.hypot(e.x-targetX,e.y-tY)));ot.forEach(o=>{if(Math.abs(o.y-tY)<80)sc-=100;});if(sc>mS){mS=sc;bY=tY;}}targetY=bY;}else targetY=this.baseY+(ballObj.y-this.baseY)*.3;}
+            else{targetX=this.baseX+bOff;targetY=this.baseY+(ballObj.y-this.baseY)*.3;}
+        }
+        const dx=targetX-this.x,dy=targetY-this.y,dist=Math.hypot(dx,dy);
+        if(dist>2){this.x+=dx/dist*spd;this.y+=dy/dist*spd;}
+        const dBall=Math.hypot(ballObj.x-this.x,ballObj.y-this.y);
+        if(dBall<this.radius+ballObj.radius&&this.cooldown===0){
+            playKick();
+            if(ballObj.lastTouch!==this){if(ballObj.lastTouch&&ballObj.lastTouch.team===this.team)ballObj.assistTouch=ballObj.lastTouch;else ballObj.assistTouch=null;ballObj.lastTouch=this;}
+            const dGoal=Math.hypot(enemyGoalX-this.x,(GOAL_Y_START+GOAL_HEIGHT/2)-this.y);
+            const shotClear=()=>{let a=Math.atan2((GOAL_Y_START+GOAL_HEIGHT/2)-this.y,enemyGoalX-this.x);return !allPlayers.some(e=>e.team!==this.team&&e.rolBase!=='Portero'&&Math.abs(Math.atan2(e.y-this.y,e.x-this.x)-a)<.25&&Math.hypot(e.x-this.x,e.y-this.y)<dGoal);};
+            const passSafe=t=>{let a=Math.atan2(t.y-this.y,t.x-this.x),d=Math.hypot(t.x-this.x,t.y-this.y);return !allPlayers.some(e=>e.team!==this.team&&Math.abs(Math.atan2(e.y-this.y,e.x-this.x)-a)<.3&&Math.hypot(e.x-this.x,e.y-this.y)<d);};
+            let canShoot=dGoal<=this.rangoTiro;
+            if(this.subType==='Centrodelantero'&&!canShoot&&shotClear()&&dGoal<=320)canShoot=true;
+            if(this.subType==='Box to Box'&&dGoal<=300&&shotClear())canShoot=true;
+            if(canShoot&&this.rolBase!=='Portero'&&this.subType!=='Central'){
+                let ang=Math.atan2((GOAL_Y_START+GOAL_HEIGHT/2)-this.y,enemyGoalX-this.x)+(Math.random()-.5)*.4;
+                ballObj.vx=Math.cos(ang)*this.kickPower*1.5;ballObj.vy=Math.sin(ang)*this.kickPower*1.5;this.cooldown=15;
+            } else {
+                const sfwd=allPlayers.filter(p=>p.team===this.team&&p!==this&&passSafe(p)&&(this.team==='azul'?p.x>this.x:p.x<this.x));
+                const sbk=allPlayers.filter(p=>p.team===this.team&&p!==this&&passSafe(p)&&(this.team==='azul'?p.x<=this.x:p.x>=this.x));
+                let tgt=null;
+                if(sfwd.length)tgt=sfwd[Math.floor(Math.random()*sfwd.length)];
+                else if(sbk.length)tgt=sbk[0];
+                if(tgt){let err=(1-this.precisionPase)*(Math.random()-.5)*1.5,a=Math.atan2(tgt.y-this.y,tgt.x-this.x);ballObj.vx=Math.cos(a+err)*this.kickPower*1.2;ballObj.vy=Math.sin(a+err)*this.kickPower*1.2;}
+                else{ballObj.vx=attackDir*this.kickPower;ballObj.vy=(Math.random()-.5)*2;}
+                this.cooldown=15;
+            }
+        }
+        allPlayers.forEach(o=>{if(o!==this){let d=Math.hypot(this.x-o.x,this.y-o.y),m=this.radius+o.radius;if(d<m&&d>0){this.x+=(this.x-o.x)/d*(m-d)*.1;this.y+=(this.y-o.y)/d*(m-d)*.1;}}});
+        this.x=Math.max(this.radius,Math.min(canvas.width-this.radius,this.x));
+        this.y=Math.max(this.radius,Math.min(canvas.height-this.radius,this.y));
     }
+    draw(){
+        ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);ctx.fillStyle=this.color;ctx.fill();
+        ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
+        ctx.beginPath();ctx.arc(this.x,this.y,this.radius/3,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,.5)';ctx.fill();ctx.closePath();
+        ctx.fillStyle='#fff';ctx.font='bold 10px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(this.numero,this.x,this.y);
+        if(this.playerName){ctx.font='bold 9px Arial';ctx.fillText(this.playerName.split(' ').pop(),this.x,this.y-this.radius-8);}
+    }
+}
 
-    // Mostrar lista de partidos
+// ── INSTANCIAS ──────────────────────────────────────────────
+const ball=new Ball();
+const players=[];
+players.push(new Player(30,250,'#3498db','azul','Portero',1));
+let nA=2;formacionesDB["4-4-2"].forEach(p=>players.push(new Player(p.x,p.y,'#3498db','azul',p.rol,nA++)));
+players.push(new Player(770,250,'#e74c3c','rojo','Portero',1));
+let nR=2;
+[{x:670,y:100,rol:'Lateral'},{x:690,y:200,rol:'Central'},{x:690,y:300,rol:'Central'},{x:670,y:400,rol:'Lateral'},{x:550,y:100,rol:'Medio'},{x:580,y:200,rol:'Medio'},{x:580,y:300,rol:'Medio'},{x:550,y:400,rol:'Medio'},{x:450,y:180,rol:'Delantero'},{x:450,y:320,rol:'Delantero'}].forEach(p=>players.push(new Player(p.x,p.y,'#e74c3c','rojo',p.rol,nR++)));
+
+// ── ASIGNAR ESPECIALIDADES A TODOS (para movimiento realista) ─
+function asignarEspecialidades(){
+    const roles=['Lateral Ofensivo','Central','Central','Lateral Defensivo','MCD','Box to Box','MCD','Extremo','Centrodelantero','Segundo Delantero'];
+    players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero').forEach((p,i)=>p.aplicarEspecialidad(p.rolBase,roles[i]||'Basico'));
+    players.find(p=>p.team==='azul'&&p.rolBase==='Portero')?.aplicarEspecialidad('Portero','Defensivo');
+    players.filter(p=>p.team==='rojo'&&p.rolBase!=='Portero').forEach((p,i)=>p.aplicarEspecialidad(p.rolBase,roles[i]||'Basico'));
+    players.find(p=>p.team==='rojo'&&p.rolBase==='Portero')?.aplicarEspecialidad('Portero','Defensivo');
+}
+asignarEspecialidades();
+
+// ── RENDER CAMPO ────────────────────────────────────────────
+function drawPitch(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#27ae60';ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=3;ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);
+    ctx.beginPath();ctx.moveTo(canvas.width/2,0);ctx.lineTo(canvas.width/2,canvas.height);ctx.stroke();
+    ctx.beginPath();ctx.arc(canvas.width/2,canvas.height/2,60,0,Math.PI*2);ctx.stroke();
+    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(0,GOAL_Y_START);ctx.lineTo(0,GOAL_Y_END);ctx.strokeStyle=colorHome;ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=2;ctx.strokeRect(0,GOAL_Y_START-50,100,GOAL_HEIGHT+100);
+    ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(canvas.width,GOAL_Y_START);ctx.lineTo(canvas.width,GOAL_Y_END);ctx.strokeStyle=colorAway;ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.5)';ctx.lineWidth=2;ctx.strokeRect(canvas.width-100,GOAL_Y_START-50,100,GOAL_HEIGHT+100);
+}
+
+// ── GAME LOOP ───────────────────────────────────────────────
+function gameLoop(){
+    if(modoVista==='live'||modoVista==='replay'){
+        drawPitch();
+        if(state.partidoActivo&&!state.pausado){ball.update();players.forEach(p=>p.update(ball,players));}
+        players.forEach(p=>p.draw());
+        ball.draw();
+    }
+    requestAnimationFrame(gameLoop);
+}
+gameLoop();
+
+// ── GOL VISUAL ──────────────────────────────────────────────
+function mostrarAnimacionGol(nombre,color){
+    const overlay=document.getElementById('goal-overlay');
+    const txt=document.getElementById('goal-text');
+    const stxt=document.getElementById('goal-scorer-text');
+    overlay.querySelectorAll('.confetti-piece').forEach(c=>c.remove());
+    overlay.style.display='block';
+    txt.style.color=color||'#f1c40f';
+    txt.style.transform='translate(-50%,-50%) scale(1)';
+    stxt.style.opacity='1';
+    stxt.innerText=nombre?`⚽ ${nombre}`:'⚽ GOL';
+    playGoal();
+    const cols=['#f1c40f','#e74c3c','#3498db','#2ecc71','#9b59b6','#fff'];
+    for(let i=0;i<30;i++){const c=document.createElement('div');c.className='confetti-piece';c.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*30}%;background:${cols[Math.floor(Math.random()*cols.length)]};width:${Math.random()*12+6}px;height:${Math.random()*12+6}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*.5}s;animation-duration:${Math.random()+1}s;`;overlay.appendChild(c);}
+    state.pausado=true;
+    setTimeout(()=>{txt.style.transform='translate(-50%,-50%) scale(0)';stxt.style.opacity='0';setTimeout(()=>overlay.style.display='none',400);},2200);
+    setTimeout(()=>{state.pausado=false;ball.reset();players.forEach(p=>p.reset());},2000);
+}
+</script>
+
+<script type="module">
+import{createClient}from'https://esm.sh/@supabase/supabase-js@2';
+const db=createClient('https://hpvpxadhbftiulwmysaw.supabase.co','sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa');
+
+const COLORS={'Universitario de Deportes':{c1:'#f3e5ab'},'Alianza Lima':{c1:'#1a237e'},'Sporting Cristal':{c1:'#5DADE2'},'FBC Melgar':{c1:'#c0392b'},'Cusco FC':{c1:'#d4af37'},'Sport Boys Association':{c1:'#fd79a8'},'Deportivo Garcilaso':{c1:'#81ecec'},'Comerciantes Unidos':{c1:'#6c5ce7'},'Cienciano':{c1:'#e74c3c'},'Sport Huancayo':{c1:'#b33939'},'ADT de Tarma':{c1:'#74b9ff'},'Atlético Grau':{c1:'#ffec13'},'UTC Cajamarca':{c1:'#f5deb3'},'Juan Pablo II College':{c1:'#f39c12'},'CD Los Chankas':{c1:'#d63031'},'FC Cajamarca':{c1:'#bdc3c7'},'Alianza Atlético Sullana':{c1:'#ecf0f1'},'Deportivo Moquegua':{c1:'#00b894'}};
+
+let currentUser=null,miEquipo=null,jornadaActiva=null,partidoActual=null,todosLosPartidos=[],realtimeChannel=null;
+
+async function init(){
+    const{data:{session}}=await db.auth.getSession();
+    if(!session){window.location.href='login.html';return;}
+    currentUser=session.user;
+    const{data:eq}=await db.from('equipos').select('*').eq('user_id',currentUser.id).single();
+    miEquipo=eq;
+    await cargarEstado();
+    iniciarCountdown();
+}
+
+async function cargarEstado(){
+    const{data:cfg}=await db.from('config_liga').select('*').eq('id',1).single();
+    jornadaActiva=cfg;
+    if(!cfg||cfg.jornada_activa===0){mostrarWaiting();return;}
+    const{data:partidos}=await db.from('jornadas').select('*').eq('temporada','2025').eq('numero_jornada',cfg.jornada_activa).order('id');
+    todosLosPartidos=partidos||[];
+    if(miEquipo){const nb=miEquipo.equipo_base||miEquipo.nombre;partidoActual=todosLosPartidos.find(p=>p.equipo_local===nb||p.equipo_visitante===nb);}
     renderMatchesList();
-
-    if (cfg.estado === 'en_vivo') {
-        await iniciarModoVivo();
-    } else if (cfg.estado === 'finalizado') {
-        await iniciarModoFinJornada();
-    } else {
-        mostrarWaiting();
-        if (partidoActual) mostrarInfoMiPartido();
-    }
-
-    // Suscribir a cambios en tiempo real
+    if(cfg.estado==='en_vivo')await iniciarModoVivo();
+    else if(cfg.estado==='finalizado')await iniciarModoFin();
+    else{mostrarWaiting();if(partidoActual)mostrarInfoMiPartido();}
     suscribirRealtime();
 }
 
-// ─── MODO EN VIVO ──────────────────────────────────────────
-async function iniciarModoVivo() {
-    if (!partidoActual) {
-        mostrarWaiting('Tu equipo no juega en esta jornada');
-        return;
-    }
-
-    modoVista = 'live';
+async function iniciarModoVivo(){
+    if(!partidoActual){mostrarWaiting('Tu equipo no juega en esta jornada');return;}
+    modoVista='live';
+    configurarPartido(partidoActual);
     mostrarCanvas();
-
-    // Configurar colores y nombres del partido
-    configurarPartido(partidoActual);
-
-    // Cargar eventos ya ocurridos (para sincronizar si llego tarde)
-    const { data: evts } = await db
-        .from('eventos_partido')
-        .select('*')
-        .eq('partido_id', partidoActual.id)
-        .order('minuto');
-
-    eventos = evts || [];
-
-    // Recalcular estado actual del marcador desde eventos guardados
-    eventos.forEach(ev => {
-        if (ev.tipo === 'gol') {
-            if (ev.es_local) scoreHome++; else scoreAway++;
-            registrarEventoUI(ev);
-        }
-    });
-
-    // Calcular minuto actual
-    if (jornadaActiva.inicio_jornada) {
-        const elapsed = (Date.now() - new Date(jornadaActiva.inicio_jornada).getTime()) / 1000;
-        matchMinuto = Math.min(90, Math.floor(elapsed * MIN_PER_SEC));
-    }
-
+    const{data:evts}=await db.from('eventos_partido').select('*').eq('partido_id',partidoActual.id).order('minuto');
+    eventos=evts||[];
+    eventos.forEach(ev=>{if(ev.tipo==='gol'){if(ev.es_local)state.golesAzul++;else state.golesRojo++;registrarEventoUI(ev);}});
     actualizarScoreUI();
+    if(jornadaActiva.inicio_jornada){const e=(Date.now()-new Date(jornadaActiva.inicio_jornada).getTime())/1000;matchMinuto=Math.min(90,Math.floor(e));}
     actualizarTimerUI(matchMinuto);
-    document.getElementById('mode-badge').className = 'mode-badge badge-live';
-    document.getElementById('mode-badge').innerText = '● EN VIVO';
-
-    // Iniciar simulación visual del campo (solo animación, no lógica real)
-    iniciarAnimacionCampo();
+    document.getElementById('mode-badge').className='mode-badge badge-live';
+    document.getElementById('mode-badge').innerText='● EN VIVO';
+    state.partidoActivo=true;state.pausado=false;
+    if(timerInterval)clearInterval(timerInterval);
+    timerInterval=setInterval(()=>{if(modoVista!=='live'){clearInterval(timerInterval);return;}matchMinuto=Math.min(90,matchMinuto+1);actualizarTimerUI(matchMinuto);if(matchMinuto>=90)clearInterval(timerInterval);},1000);
 }
 
-// ─── MODO FIN ──────────────────────────────────────────────
-async function iniciarModoFinJornada() {
-    modoVista = 'fin';
-
-    if (!partidoActual || partidoActual.estado !== 'finalizado') {
-        mostrarWaiting('Jornada finalizada. Revisa los resultados abajo.');
-        renderMatchesList();
-        return;
-    }
-
-    scoreHome = partidoActual.goles_local ?? 0;
-    scoreAway = partidoActual.goles_visitante ?? 0;
-
-    document.getElementById('waiting-panel').style.display = 'none';
-    const fin = document.getElementById('fin-panel');
-    fin.style.display = 'block';
-
-    document.getElementById('fin-titulo').innerText = 'Partido Finalizado';
-    document.getElementById('fin-equipos').innerText =
-        `${partidoActual.equipo_local} vs ${partidoActual.equipo_visitante}`;
-    document.getElementById('fin-score').innerText = `${scoreHome} — ${scoreAway}`;
-
-    // Cargar eventos para el replay
-    const { data: evts } = await db
-        .from('eventos_partido')
-        .select('*')
-        .eq('partido_id', partidoActual.id)
-        .order('minuto');
-    eventos = evts || [];
-
-    const goles = eventos.filter(e => e.tipo === 'gol');
-    if (goles.length) {
-        document.getElementById('fin-goles').innerHTML = goles.map(g =>
-            `<span style="color:${g.es_local ? colorHome : colorAway}">⚽ ${g.minuto}' ${g.jugador || ''}${g.es_local ? ' (L)' : ' (V)'}</span>`
-        ).join('  ·  ');
-    }
-}
-
-// ─── REPLAY ────────────────────────────────────────────────
-window.iniciarReplay = function() {
-    if (!eventos.length) { alert('No hay eventos guardados para el replay'); return; }
-
-    modoVista = 'replay';
-    document.getElementById('fin-panel').style.display = 'none';
-    document.getElementById('canvas-wrap').style.display = 'block';
-    document.getElementById('ui-panel').style.display = 'flex';
-    document.getElementById('live-events').style.display = 'flex';
-
-    scoreHome = 0; scoreAway = 0; replayIdx = 0;
-    actualizarScoreUI();
-    document.getElementById('home-scorers').innerHTML = '';
-    document.getElementById('away-scorers').innerHTML = '';
-    document.getElementById('mode-badge').className = 'mode-badge badge-replay';
-    document.getElementById('mode-badge').innerText = '🎬 REPLAY';
-
+async function iniciarModoFin(){
+    modoVista='fin';state.partidoActivo=false;
+    if(!partidoActual){mostrarWaiting('Jornada finalizada.');return;}
+    state.golesAzul=partidoActual.goles_local??0;state.golesRojo=partidoActual.goles_visitante??0;
     configurarPartido(partidoActual);
-    iniciarAnimacionCampo();
+    document.getElementById('waiting-panel').style.display='none';
+    document.getElementById('fin-panel').style.display='block';
+    document.getElementById('fin-equipos').innerText=`${partidoActual.equipo_local} vs ${partidoActual.equipo_visitante}`;
+    document.getElementById('fin-score').innerText=`${state.golesAzul} — ${state.golesRojo}`;
+    const{data:evts}=await db.from('eventos_partido').select('*').eq('partido_id',partidoActual.id).order('minuto');
+    eventos=evts||[];
+    const goles=eventos.filter(e=>e.tipo==='gol');
+    if(goles.length)document.getElementById('fin-goles').innerHTML=goles.map(g=>`<span style="color:${g.es_local?colorHome:colorAway}">⚽ ${g.minuto}' ${g.jugador||''}${g.es_local?' (L)':' (V)'}</span>`).join(' · ');
+}
 
-    // Reproducir eventos uno a uno
-    reproducirSiguienteEvento();
+window.iniciarReplay=function(){
+    if(!eventos.length){alert('No hay eventos para el replay');return;}
+    modoVista='replay';
+    document.getElementById('fin-panel').style.display='none';
+    mostrarCanvas();
+    state.golesAzul=0;state.golesRojo=0;actualizarScoreUI();
+    document.getElementById('home-scorers').innerHTML='';document.getElementById('away-scorers').innerHTML='';
+    document.getElementById('mode-badge').className='mode-badge badge-replay';
+    document.getElementById('mode-badge').innerText='🎬 REPLAY';
+    state.partidoActivo=true;state.pausado=false;
+    replayIdx=0;reproducirEvento();
 };
 
-function reproducirSiguienteEvento() {
-    if (replayIdx >= eventos.length) {
-        // Replay terminado
-        setTimeout(() => {
-            document.getElementById('mode-badge').innerText = '✅ FIN';
-            mostrarAnimacionGol('Fin del partido', '#f1c40f');
-        }, 1000);
-        return;
-    }
-
-    const ev = eventos[replayIdx++];
+function reproducirEvento(){
+    if(replayIdx>=eventos.length){setTimeout(()=>{document.getElementById('mode-badge').innerText='✅ FIN';mostrarAnimacionGol('Fin del partido','#f1c40f');},1000);return;}
+    const ev=eventos[replayIdx++];
     actualizarTimerUI(ev.minuto);
-
-    if (ev.tipo === 'gol') {
-        if (ev.es_local) scoreHome++; else scoreAway++;
-        actualizarScoreUI();
-        registrarEventoUI(ev);
-        mostrarAnimacionGol(ev.jugador, ev.es_local ? colorHome : colorAway);
-        setTimeout(reproducirSiguienteEvento, REPLAY_SPEED_MS * 4);
-    } else {
-        setTimeout(reproducirSiguienteEvento, REPLAY_SPEED_MS);
-    }
+    if(ev.tipo==='gol'){if(ev.es_local)state.golesAzul++;else state.golesRojo++;actualizarScoreUI();registrarEventoUI(ev);mostrarAnimacionGol(ev.jugador,ev.es_local?colorHome:colorAway);setTimeout(reproducirEvento,3500);}
+    else setTimeout(reproducirEvento,600);
 }
 
-// ─── REALTIME SUPABASE ─────────────────────────────────────
-function suscribirRealtime() {
-    if (realtimeChannel) db.removeChannel(realtimeChannel);
-
-    realtimeChannel = db.channel('partido-vivo')
-        .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'eventos_partido',
-            filter: partidoActual ? `partido_id=eq.${partidoActual.id}` : undefined
-        }, payload => {
-            const ev = payload.new;
-            if (ev.tipo === 'gol') {
-                if (ev.es_local) scoreHome++; else scoreAway++;
-                actualizarScoreUI();
-                registrarEventoUI(ev);
-                mostrarAnimacionGol(ev.jugador, ev.es_local ? colorHome : colorAway);
-            }
+function suscribirRealtime(){
+    if(realtimeChannel)db.removeChannel(realtimeChannel);
+    realtimeChannel=db.channel('partido-vivo')
+        .on('postgres_changes',{event:'INSERT',schema:'public',table:'eventos_partido',filter:partidoActual?`partido_id=eq.${partidoActual.id}`:undefined},payload=>{
+            const ev=payload.new;
+            if(ev.tipo==='gol'){if(ev.es_local)state.golesAzul++;else state.golesRojo++;actualizarScoreUI();registrarEventoUI(ev);mostrarAnimacionGol(ev.jugador,ev.es_local?colorHome:colorAway);}
         })
-        .on('postgres_changes', {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'config_liga'
-        }, payload => {
-            const cfg = payload.new;
-            jornadaActiva = cfg;
-            if (cfg.estado === 'en_vivo' && modoVista === 'wait') {
-                cargarEstado();
-            } else if (cfg.estado === 'finalizado' && modoVista === 'live') {
-                modoVista = 'fin';
-                setTimeout(() => iniciarModoFinJornada(), 2000);
-            }
+        .on('postgres_changes',{event:'UPDATE',schema:'public',table:'config_liga'},payload=>{
+            jornadaActiva=payload.new;
+            if(payload.new.estado==='en_vivo'&&modoVista==='wait')cargarEstado();
+            else if(payload.new.estado==='finalizado'&&modoVista==='live'){modoVista='fin';setTimeout(()=>iniciarModoFin(),2000);}
         })
         .subscribe();
 }
 
-// ─── ANIMACIÓN DEL CAMPO (visual) ─────────────────────────
-// Los jugadores se mueven aleatoriamente para dar sensación de partido en vivo
-// La lógica real de goles viene de Supabase Realtime
-let animPlayers = [];
-let animBall = { x: CANVAS_W/2, y: CANVAS_H/2, vx: 2, vy: 1.5 };
-let animActive = false;
-let timerInterval = null;
-
-function iniciarAnimacionCampo() {
-    animActive = true;
-    animPlayers = [];
-
-    // Crear 22 jugadores animados
-    const formHome = [{x:130,y:100},{x:110,y:200},{x:110,y:300},{x:130,y:400},{x:250,y:100},{x:220,y:200},{x:220,y:300},{x:250,y:400},{x:350,y:180},{x:350,y:320},{x:30,y:250}];
-    const formAway = [{x:670,y:100},{x:690,y:200},{x:690,y:300},{x:670,y:400},{x:550,y:100},{x:580,y:200},{x:580,y:300},{x:550,y:400},{x:450,y:180},{x:450,y:320},{x:770,y:250}];
-
-    formHome.forEach((p, i) => animPlayers.push({ x: p.x, y: p.y, bx: p.x, by: p.y, team: 'home', num: i+1, vx: 0, vy: 0 }));
-    formAway.forEach((p, i) => animPlayers.push({ x: p.x, y: p.y, bx: p.x, by: p.y, team: 'away', num: i+1, vx: 0, vy: 0 }));
-
-    animBall = { x: CANVAS_W/2, y: CANVAS_H/2, vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4 };
-
-    // Timer en vivo
-    if (timerInterval) clearInterval(timerInterval);
-    if (modoVista === 'live') {
-        timerInterval = setInterval(() => {
-            if (modoVista !== 'live') { clearInterval(timerInterval); return; }
-            matchMinuto = Math.min(90, matchMinuto + 1);
-            actualizarTimerUI(matchMinuto);
-            if (matchMinuto >= 90) {
-                clearInterval(timerInterval);
-                document.getElementById('timer').innerText = "90'";
-            }
-        }, 1000);
-    }
-}
-
-function updateAnimacion() {
-    if (!animActive) return;
-
-    // Mover pelota
-    animBall.x += animBall.vx;
-    animBall.y += animBall.vy;
-    animBall.vx *= 0.99;
-    animBall.vy *= 0.99;
-
-    // Rebotes
-    if (animBall.x < 6)  { animBall.x = 6;  animBall.vx *= -1; }
-    if (animBall.x > CANVAS_W-6) { animBall.x = CANVAS_W-6; animBall.vx *= -1; }
-    if (animBall.y < 6)  { animBall.y = 6;  animBall.vy *= -1; }
-    if (animBall.y > CANVAS_H-6) { animBall.y = CANVAS_H-6; animBall.vy *= -1; }
-
-    // Velocidad mínima
-    if (Math.abs(animBall.vx) < 1) animBall.vx = (Math.random()-0.5) * 4;
-    if (Math.abs(animBall.vy) < 1) animBall.vy = (Math.random()-0.5) * 4;
-
-    // Mover jugadores hacia la pelota con algo de aleatoriedad
-    animPlayers.forEach(p => {
-        const targetX = animBall.x + (Math.random()-0.5)*120 + (p.team==='home' ? -60 : 60);
-        const targetY = animBall.y + (Math.random()-0.5)*80;
-        const bx = p.bx, by = p.by;
-
-        const destX = (targetX + bx) / 2;
-        const destY = (targetY + by) / 2;
-
-        const dx = destX - p.x;
-        const dy = destY - p.y;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist > 2) {
-            const spd = 1.5;
-            p.x += (dx/dist) * spd;
-            p.y += (dy/dist) * spd;
-        }
-
-        p.x = Math.max(p.team==='home'?5:CANVAS_W/2, Math.min(p.team==='home'?CANVAS_W/2:CANVAS_W-5, p.x));
-        p.y = Math.max(5, Math.min(CANVAS_H-5, p.y));
-    });
-}
-
-function dibujarCampo() {
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
-
-    // Campo verde
-    ctx.fillStyle = '#27ae60';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-
-    // Líneas
-    ctx.strokeStyle = 'rgba(255,255,255,.7)';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(2, 2, CANVAS_W-4, CANVAS_H-4);
-
-    // Línea central
-    ctx.beginPath(); ctx.moveTo(CANVAS_W/2, 0); ctx.lineTo(CANVAS_W/2, CANVAS_H); ctx.stroke();
-
-    // Círculo central
-    ctx.beginPath(); ctx.arc(CANVAS_W/2, CANVAS_H/2, 60, 0, Math.PI*2); ctx.stroke();
-
-    // Porterías
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = colorHome;
-    ctx.beginPath(); ctx.moveTo(0, GOAL_Y_START); ctx.lineTo(0, GOAL_Y_END); ctx.stroke();
-    ctx.strokeStyle = colorAway;
-    ctx.beginPath(); ctx.moveTo(CANVAS_W, GOAL_Y_START); ctx.lineTo(CANVAS_W, GOAL_Y_END); ctx.stroke();
-
-    // Áreas
-    ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 2;
-    ctx.strokeRect(0, GOAL_Y_START-50, 100, GOAL_HEIGHT+100);
-    ctx.strokeRect(CANVAS_W-100, GOAL_Y_START-50, 100, GOAL_HEIGHT+100);
-
-    // Jugadores
-    animPlayers.forEach(p => {
-        const col = p.team === 'home' ? colorHome : colorAway;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI*2);
-        ctx.fillStyle = col; ctx.fill();
-        ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 9px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(p.num, p.x, p.y);
-    });
-
-    // Pelota
-    ctx.beginPath(); ctx.arc(animBall.x, animBall.y, 7, 0, Math.PI*2);
-    ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.stroke();
-}
-
-function gameLoop() {
-    if (animActive && (modoVista === 'live' || modoVista === 'replay')) {
-        updateAnimacion();
-        dibujarCampo();
-    } else if (modoVista === 'wait' || modoVista === 'fin') {
-        // No renderizar canvas
-    }
-    requestAnimationFrame(gameLoop);
-}
-
-// ─── HELPERS UI ────────────────────────────────────────────
-function configurarPartido(p) {
-    const colores = TEAM_COLORS;
-    colorHome = colores[p.equipo_local]?.c1 || '#3498db';
-    colorAway = colores[p.equipo_visitante]?.c1 || '#e74c3c';
-    nombreHome = p.equipo_local;
-    nombreAway = p.equipo_visitante;
+function configurarPartido(p){
+    colorHome=COLORS[p.equipo_local]?.c1||'#3498db';
+    colorAway=COLORS[p.equipo_visitante]?.c1||'#e74c3c';
+    nombreHome=p.equipo_local;nombreAway=p.equipo_visitante;
     actualizarScoreUI();
+    players.forEach(pl=>{if(pl.team==='azul')pl.color=colorHome;if(pl.team==='rojo')pl.color=colorAway;});
 }
 
-function actualizarScoreUI() {
-    document.getElementById('scoreHome').innerText = `${nombreHome.substring(0,10)}: ${scoreHome}`;
-    document.getElementById('scoreHome').style.color = colorHome;
-    document.getElementById('scoreAway').innerText = `${nombreAway.substring(0,10)}: ${scoreAway}`;
-    document.getElementById('scoreAway').style.color = colorAway;
+function actualizarScoreUI(){
+    const az=document.getElementById('scoreAzul'),rj=document.getElementById('scoreRojo');
+    az.innerText=`${nombreHome.substring(0,12)}: ${state.golesAzul}`;az.style.color=colorHome;
+    rj.innerText=`${nombreAway.substring(0,12)}: ${state.golesRojo}`;rj.style.color=colorAway;
 }
 
-function actualizarTimerUI(min) {
-    const el = document.getElementById('timer');
-    el.innerText = `${min}'`;
-    el.className = 'timer ' + (modoVista === 'live' ? 'live' : 'replay');
+function actualizarTimerUI(min){
+    const el=document.getElementById('timeEl');
+    el.innerText=`${min}'`;
+    el.style.color=modoVista==='live'?'#2ecc71':modoVista==='replay'?'#f1c40f':'#ecf0f1';
 }
 
-function registrarEventoUI(ev) {
-    const min = ev.minuto;
-    const gol = `<div style="margin-top:2px;">⚽ ${min}' ${ev.jugador || 'Jugador'}</div>`;
-    if (ev.es_local) document.getElementById('home-scorers').innerHTML += gol;
-    else document.getElementById('away-scorers').innerHTML += gol;
+function registrarEventoUI(ev){
+    const g=`<div style="margin-top:2px;">⚽ ${ev.minuto}' ${ev.jugador||'Jugador'}</div>`;
+    if(ev.es_local)document.getElementById('home-scorers').innerHTML+=g;
+    else document.getElementById('away-scorers').innerHTML+=g;
 }
 
-function mostrarCanvas() {
-    document.getElementById('waiting-panel').style.display = 'none';
-    document.getElementById('canvas-wrap').style.display = 'block';
-    document.getElementById('ui-panel').style.display = 'flex';
-    document.getElementById('live-events').style.display = 'flex';
+function mostrarCanvas(){
+    document.getElementById('waiting-panel').style.display='none';
+    document.getElementById('fin-panel').style.display='none';
+    document.getElementById('canvas-wrap').style.display='block';
+    document.getElementById('ui-panel').style.display='flex';
+    document.getElementById('live-events').style.display='flex';
 }
 
-function mostrarWaiting(msg = null) {
-    document.getElementById('canvas-wrap').style.display = 'none';
-    document.getElementById('ui-panel').style.display = 'none';
-    document.getElementById('live-events').style.display = 'none';
-    document.getElementById('fin-panel').style.display = 'none';
-    document.getElementById('waiting-panel').style.display = 'block';
-    if (msg) document.getElementById('waiting-panel').querySelector('.wait-desc').innerText = msg;
+function mostrarWaiting(msg=null){
+    document.getElementById('canvas-wrap').style.display='none';
+    document.getElementById('ui-panel').style.display='none';
+    document.getElementById('live-events').style.display='none';
+    document.getElementById('fin-panel').style.display='none';
+    document.getElementById('waiting-panel').style.display='block';
+    if(msg)document.querySelector('.wait-desc').innerText=msg;
 }
 
-function mostrarInfoMiPartido() {
-    if (!partidoActual || !jornadaActiva) return;
-    const el = document.getElementById('mi-partido-info');
-    el.style.display = 'block';
-    document.getElementById('mi-partido-teams').innerText =
-        `${partidoActual.equipo_local} vs ${partidoActual.equipo_visitante}`;
-    document.getElementById('mi-partido-jornada').innerText =
-        `Jornada ${jornadaActiva.jornada_activa}`;
+function mostrarInfoMiPartido(){
+    if(!partidoActual||!jornadaActiva)return;
+    document.getElementById('mi-partido-info').style.display='block';
+    document.getElementById('mi-partido-teams').innerText=`${partidoActual.equipo_local} vs ${partidoActual.equipo_visitante}`;
+    document.getElementById('mi-partido-jornada').innerText=`Jornada ${jornadaActiva.jornada_activa}`;
 }
 
-function renderMatchesList() {
-    const container = document.getElementById('matches-list');
-    if (!todosLosPartidos.length) { container.innerHTML = ''; return; }
-
-    const equipoBase = miEquipo ? (EQUIPO_BASE_NAMES[miEquipo.equipo_base] || miEquipo.nombre) : null;
-
-    container.innerHTML = todosLosPartidos.map(p => {
-        const esMio = equipoBase && (p.equipo_local === equipoBase || p.equipo_visitante === equipoBase);
-        const fin = p.estado === 'finalizado';
-        const vivo = p.estado === 'en_curso';
-        const clases = `match-item ${esMio?'mi-partido':''} ${fin?'finalizado':''} ${vivo?'en-vivo':''}`;
-        const score = fin
-            ? `<span class="ms">${p.goles_local} — ${p.goles_visitante}</span>`
-            : `<span class="ms ms-pending">${vivo?'EN VIVO':'VS'}</span>`;
-        return `<div class="${clases}" onclick="verPartido('${p.id}')">
-            <span class="mt home ${esMio&&p.equipo_local===equipoBase?'mi-equipo':''}">${p.equipo_local}</span>
+function renderMatchesList(){
+    const container=document.getElementById('matches-list');
+    if(!todosLosPartidos.length){container.innerHTML='';return;}
+    const nb=miEquipo?(miEquipo.equipo_base||miEquipo.nombre):null;
+    container.innerHTML=todosLosPartidos.map(p=>{
+        const esMio=nb&&(p.equipo_local===nb||p.equipo_visitante===nb);
+        const fin=p.estado==='finalizado',vivo=p.estado==='en_curso';
+        const score=fin?`<span class="ms">${p.goles_local} — ${p.goles_visitante}</span>`:`<span class="ms-pending">${vivo?'EN VIVO':'VS'}</span>`;
+        return `<div class="match-item ${esMio?'mi-partido':''} ${fin?'finalizado':''} ${vivo?'en-vivo':''}" onclick="verPartido('${p.id}')">
+            <span class="mt home ${esMio&&p.equipo_local===nb?'mi-equipo':''}">${p.equipo_local}</span>
             ${score}
-            <span class="mt away ${esMio&&p.equipo_visitante===equipoBase?'mi-equipo':''}">${p.equipo_visitante}</span>
+            <span class="mt ${esMio&&p.equipo_visitante===nb?'mi-equipo':''}">${p.equipo_visitante}</span>
         </div>`;
     }).join('');
 }
 
-window.verPartido = async function(id) {
-    const p = todosLosPartidos.find(x => x.id === id);
-    if (!p) return;
-    partidoActual = p;
-    configurarPartido(p);
-
-    if (p.estado === 'finalizado') {
-        scoreHome = p.goles_local;
-        scoreAway = p.goles_visitante;
-        const { data: evts } = await db.from('eventos_partido').select('*').eq('partido_id', id).order('minuto');
-        eventos = evts || [];
-        await iniciarModoFinJornada();
-    } else if (p.estado === 'en_curso' || jornadaActiva?.estado === 'en_vivo') {
-        await iniciarModoVivo();
-    }
+window.verPartido=async function(id){
+    const p=todosLosPartidos.find(x=>x.id===id);
+    if(!p)return;
+    partidoActual=p;configurarPartido(p);
+    if(p.estado==='finalizado'){state.golesAzul=p.goles_local;state.golesRojo=p.goles_visitante;await iniciarModoFin();}
+    else if(jornadaActiva?.estado==='en_vivo')await iniciarModoVivo();
 };
 
-// ─── COUNTDOWN ─────────────────────────────────────────────
-function iniciarCountdown() {
-    function tick() {
-        if (modoVista !== 'wait') return;
-
-        const now = new Date();
-        const target = new Date();
-        target.setHours(19, 0, 0, 0); // 7PM hora local (el servidor ajusta a UTC-5)
-
-        let diff = target - now;
-        if (diff < 0) diff += 86400000; // si ya pasó, mañana
-
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        document.getElementById('countdown').innerText =
-            `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+function iniciarCountdown(){
+    function tick(){
+        if(modoVista!=='wait')return;
+        const now=new Date(),target=new Date();
+        target.setHours(19,0,0,0);
+        let diff=target-now;if(diff<0)diff+=86400000;
+        const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
+        document.getElementById('countdown').innerText=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
-    tick();
-    setInterval(tick, 1000);
+    tick();setInterval(tick,1000);
 }
-
-// ─── ANIMACIÓN GOL ─────────────────────────────────────────
-function mostrarAnimacionGol(nombre, color) {
-    const overlay = document.getElementById('goal-overlay');
-    const txt = document.getElementById('goal-text');
-    const stxt = document.getElementById('goal-scorer-text');
-    overlay.querySelectorAll('.confetti-piece').forEach(c => c.remove());
-    overlay.style.display = 'block';
-    txt.style.color = color || '#f1c40f';
-    txt.style.transform = 'translate(-50%,-50%) scale(1)';
-    stxt.style.opacity = '1';
-    stxt.innerText = nombre ? `⚽ ${nombre}` : '⚽ GOL';
-    const colors = ['#f1c40f','#e74c3c','#3498db','#2ecc71','#9b59b6','#fff'];
-    for (let i = 0; i < 30; i++) {
-        const c = document.createElement('div');
-        c.className = 'confetti-piece';
-        c.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*30}%;background:${colors[Math.floor(Math.random()*colors.length)]};width:${Math.random()*12+6}px;height:${Math.random()*12+6}px;border-radius:${Math.random()>.5?'50%':'2px'};animation-delay:${Math.random()*.5}s;animation-duration:${Math.random()+1}s;`;
-        overlay.appendChild(c);
-    }
-    setTimeout(() => {
-        txt.style.transform = 'translate(-50%,-50%) scale(0)';
-        stxt.style.opacity = '0';
-        setTimeout(() => overlay.style.display = 'none', 400);
-    }, 2200);
-}
-
-// ─── DATOS EQUIPOS ─────────────────────────────────────────
-const EQUIPO_BASE_NAMES = {
-    'u': 'Universitario', 'al': 'Alianza Lima', 'sc': 'Sporting Cristal',
-    'mel': 'Melgar', 'cus': 'Cusco FC', 'cie': 'Cienciano',
-    'adt': 'ADT', 'gra': 'Grau', 'shu': 'Sport Huancayo', 'sba': 'Sport Boys'
-};
-
-const TEAM_COLORS = {
-    'Universitario':    { c1: '#f3e5ab', c2: '#800000' },
-    'Alianza Lima':     { c1: '#1a237e', c2: '#ffffff' },
-    'Sporting Cristal': { c1: '#5DADE2', c2: '#ffffff' },
-    'Melgar':           { c1: '#c0392b', c2: '#000000' },
-    'Cusco FC':         { c1: '#d4af37', c2: '#000000' },
-    'Cienciano':        { c1: '#e74c3c', c2: '#ffffff' },
-    'ADT':              { c1: '#74b9ff', c2: '#2d3436' },
-    'UTC':              { c1: '#f5deb3', c2: '#800000' },
-    'Mannucci':         { c1: '#f39c12', c2: '#2c3e50' },
-    'Binacional':       { c1: '#27ae60', c2: '#ffffff' },
-    'Deportivo Garcilaso': { c1: '#81ecec', c2: '#1a1a1a' },
-    'Sport Huancayo':   { c1: '#b33939', c2: '#27ae60' },
-    'Cesar Vallejo':    { c1: '#8e44ad', c2: '#f1c40f' },
-    'Grau':             { c1: '#ffec13', c2: '#1a1a1a' },
-    'Alianza Atlético': { c1: '#ecf0f1', c2: '#2980b9' },
-    'Los Chankas':      { c1: '#d63031', c2: '#d4af37' },
-    'Ayacucho FC':      { c1: '#e67e22', c2: '#ffffff' },
-    'UCV':              { c1: '#c0392b', c2: '#f1c40f' }
-};
 
 init();
 </script>
