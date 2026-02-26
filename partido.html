@@ -365,39 +365,24 @@ function configurarEquipos(homeTeam, awayTeam) {
     currentMatchState.actualHomeColor = homeTeam.c1;
     currentMatchState.actualAwayColor = awayTeam.c1;
 
-    // Aplicar colores
+    // Solo colores — sin especialidades (igual que el offline al inicio)
     players.forEach(p=>{
         if(p.team==='azul') p.color=homeTeam.c1;
         if(p.team==='rojo') p.color=awayTeam.c1;
     });
 
-    // Asignar especialidades y NOMBRES REALES — igual que mejorarEquipoRival del offline
-    const rolesSubtipos=['Lateral Ofensivo','Central','Central','Lateral Defensivo','MCD','Box to Box','MCD','Extremo','Centrodelantero','Segundo Delantero'];
-    const homePoder=homeTeam.power||70, awayPoder=awayTeam.power||70;
-
-    // AZUL (local)
+    // Asignar nombres reales a los jugadores (sin cambiar stats)
     const homeS11=generateStarting11(homeTeam.id);
+    const awayS11=generateStarting11(awayTeam.id);
     const azulField=players.filter(p=>p.team==='azul'&&p.rolBase!=='Portero');
     const azulGK=players.find(p=>p.team==='azul'&&p.rolBase==='Portero');
-    azulField.forEach((p,i)=>{
-        const sub=rolesSubtipos[i]||'Basico';
-        p.aplicarEspecialidad(p.rolBase,sub);
-        p.speed*=(homePoder/70);p.kickPower*=(homePoder/70);
-        p.playerName=homeS11.field[i]||'Jugador';
-    });
-    if(azulGK){azulGK.aplicarEspecialidad('Portero','Defensivo');azulGK.playerName=homeS11.gk;}
-
-    // ROJO (visitante)
-    const awayS11=generateStarting11(awayTeam.id);
     const rojoField=players.filter(p=>p.team==='rojo'&&p.rolBase!=='Portero');
     const rojoGK=players.find(p=>p.team==='rojo'&&p.rolBase==='Portero');
-    rojoField.forEach((p,i)=>{
-        const sub=rolesSubtipos[i]||'Basico';
-        p.aplicarEspecialidad(p.rolBase,sub);
-        p.speed*=(awayPoder/70);p.kickPower*=(awayPoder/70);
-        p.playerName=awayS11.field[i]||'Jugador';
-    });
-    if(rojoGK){rojoGK.aplicarEspecialidad('Portero','Defensivo');rojoGK.playerName=awayS11.gk;}
+
+    azulField.forEach((p,i)=>{ p.type='Novato'; p.subType='Basico'; p.resetStats(); p.playerName=homeS11.field[i]||'Jugador'; });
+    if(azulGK){ azulGK.type='Novato'; azulGK.subType='Basico'; azulGK.resetStats(); azulGK.playerName=homeS11.gk; }
+    rojoField.forEach((p,i)=>{ p.type='Novato'; p.subType='Basico'; p.resetStats(); p.playerName=awayS11.field[i]||'Jugador'; });
+    if(rojoGK){ rojoGK.type='Novato'; rojoGK.subType='Basico'; rojoGK.resetStats(); rojoGK.playerName=awayS11.gk; }
 
     // Score UI
     document.getElementById('scoreAzul').innerText=`${homeTeam.name.substring(0,12)}: 0`;
@@ -501,6 +486,7 @@ function mostrarAnimacionGol(nombre,color){
 <script type="module">
 import{createClient}from'https://esm.sh/@supabase/supabase-js@2';
 const db=createClient('https://hpvpxadhbftiulwmysaw.supabase.co','sb_publishable_Inip39JWInROxtuAaTL9rQ_f24sZcFa');
+window.db=db; // exponer para verPartido
 
 let miEquipo=null, jornadaActiva=null, partidoActual=null, todosLosPartidos=[];
 let modoVista='wait', replayEventos=[];
@@ -710,16 +696,47 @@ function renderMatchesList(){
     }).join('');
 }
 
-// Ver cualquier partido de la jornada
+// Ver cualquier partido — solo cambia colores/nombres, NO reinicia el motor
 window.verPartido=function(id){
     const p=todosLosPartidos.find(x=>x.id===id);
     if(!p)return;
-    // Cambiar partido activo y reiniciar motor con ese partido
     partidoActual=p;
+
     if(p.estado==='finalizado'){
         mostrarFin();
-    } else if(jornadaActiva?.estado==='en_vivo'){
-        iniciarPartido();
+        return;
+    }
+
+    if(jornadaActiva?.estado==='en_vivo'){
+        // Cambiar solo colores y nombres visualmente — el motor sigue corriendo
+        const homeTeam=getTeamByName(p.equipo_local);
+        const awayTeam=getTeamByName(p.equipo_visitante);
+        currentMatchState.homeData=homeTeam;
+        currentMatchState.awayData=awayTeam;
+        currentMatchState.actualHomeColor=homeTeam.c1;
+        currentMatchState.actualAwayColor=awayTeam.c1;
+        players.forEach(pl=>{if(pl.team==='azul')pl.color=homeTeam.c1;if(pl.team==='rojo')pl.color=awayTeam.c1;});
+
+        // Sincronizar marcador actual de ese partido
+        document.getElementById('scoreAzul').innerText=`${homeTeam.name.substring(0,12)}: ${p.goles_local??0}`;
+        document.getElementById('scoreAzul').style.color=homeTeam.c1;
+        document.getElementById('scoreRojo').innerText=`${awayTeam.name.substring(0,12)}: ${p.goles_visitante??0}`;
+        document.getElementById('scoreRojo').style.color=awayTeam.c1;
+        state.golesAzul=p.goles_local??0;
+        state.golesRojo=p.goles_visitante??0;
+
+        // Cargar goles ya ocurridos en el ticker
+        document.getElementById('home-scorers').innerHTML='';
+        document.getElementById('away-scorers').innerHTML='';
+        db.from('eventos_partido').select('*').eq('partido_id',p.id).order('minuto').then(({data})=>{
+            (data||[]).filter(e=>e.tipo==='gol').forEach(ev=>{
+                const el=`<div style="margin-top:2px;">⚽ ${ev.minuto}' ${ev.jugador||''}</div>`;
+                if(ev.es_local) document.getElementById('home-scorers').innerHTML+=el;
+                else document.getElementById('away-scorers').innerHTML+=el;
+            });
+        });
+
+        mostrarCanvas();
     }
 };
 
