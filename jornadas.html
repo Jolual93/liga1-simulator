@@ -366,15 +366,22 @@ window.generarCalendario = async function() {
         if (!equipoElegido) { toast('Selecciona tu equipo primero', 'err'); return; }
 
         const { data: { session } } = await db.auth.getSession();
+        const nombreManager = session.user.user_metadata?.nombre_manager || session.user.email.split('@')[0];
         const { error: eqErr } = await db.from('equipos').upsert({
             user_id: session.user.id,
+            nombre: equipoElegido,
             equipo_base: equipoElegido,
             modo_liga: 'oficial'
         }, { onConflict: 'user_id' });
         if (eqErr) { toast('Error guardando equipo: ' + eqErr.message, 'err'); return; }
     } else if (modoLiga === 'custom') {
         const { data: { session } } = await db.auth.getSession();
-        await db.from('equipos').upsert({ user_id: session.user.id, modo_liga: 'custom' }, { onConflict: 'user_id' });
+        const nombreManager = session.user.user_metadata?.nombre_manager || session.user.email.split('@')[0];
+        await db.from('equipos').upsert({ 
+            user_id: session.user.id, 
+            nombre: nombreManager + ' FC',
+            modo_liga: 'custom' 
+        }, { onConflict: 'user_id' });
     } else {
         toast('Elige primero el tipo de liga', 'err'); return;
     }
