@@ -1,263 +1,1475 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Liga 1 Simulator</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>El Estanque Sagrado</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,600;1,300&display=swap');
+*{box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none;margin:0;padding:0}
+:root{
+  --gold:#c9a84c;--gold-light:#f0d078;--gold-dark:#8a6020;
+  --rare:#4c8bc9;--rare-light:#78b0f0;
+  --epic:#9c4cc9;--epic-light:#c078f0;
+  --legend:#c94c4c;--legend-light:#f07878;
+  --common:#6b8c6b;--common-light:#9bbf9b;
+  --archer:#4c9bc9;--warrior:#c96b4c;--mage:#9c4cc9;--support:#4cc97a;
+  --bg-deep:#04040a;--bg-mid:#0a0a18;--bg-light:#12121f;
+  --pond:#0ea5e9;--pond-dark:#0369a1;
+}
+body,html{width:100%;height:100%;background:var(--bg-deep);overflow:hidden;display:flex;justify-content:center;font-family:'Crimson Pro',serif}
+#game-area{width:100%;max-width:min(100%,65vh);height:100%;position:relative;overflow:hidden;background:linear-gradient(180deg,#0d0d1f 0%,#080812 60%,#050510 100%);display:flex;flex-direction:column;}
 
-        body {
-            background: #0a0a0a;
-            color: white;
-            font-family: 'Rajdhani', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            overflow: hidden;
-        }
+/* ── POND BAR ─────────────────────────────────────────────── */
+#pond-bar{position:absolute;bottom:0;left:0;width:100%;height:42px;background:linear-gradient(180deg,rgba(14,165,233,0.15) 0%,rgba(3,105,161,0.4) 100%);border-top:1px solid rgba(14,165,233,0.4);z-index:20;display:flex;align-items:center;justify-content:center;gap:8px;backdrop-filter:blur(4px);}
+#pond-hp-track{width:60%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+#pond-hp-fill{height:100%;width:100%;border-radius:3px;background:linear-gradient(90deg,#0ea5e9,#38bdf8);transition:width 0.3s ease,background 0.5s;box-shadow:0 0 6px rgba(14,165,233,0.6);}
+#pond-hp-text{font-family:'Cinzel',serif;font-size:0.65rem;color:rgba(14,165,233,0.9);letter-spacing:1px;min-width:40px;text-align:right;}
+#pond-label{font-size:0.7rem;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;font-family:'Cinzel',serif;}
+#pond-fury-icon{font-size:1rem;cursor:pointer;transition:transform 0.2s,filter 0.2s;}
+#pond-fury-icon:hover{transform:scale(1.2);}
+#pond-fury-track{width:15%;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+#pond-fury-fill{height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,#f97316,#ef4444);transition:width 0.3s ease;box-shadow:0 0 6px rgba(249,115,22,0.6);}
 
-        /* FONDO ANIMADO */
-        .bg {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse at 20% 80%, rgba(39,174,96,0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(241,196,15,0.07) 0%, transparent 50%),
-                #0a0a0a;
-        }
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background-image:
-                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-            background-size: 60px 60px;
-        }
+/* ── TOP STATS ────────────────────────────────────────────── */
+#top-stats{position:absolute;top:0;left:0;width:100%;height:36px;background:rgba(4,4,10,0.85);border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;padding:0 10px;z-index:100;backdrop-filter:blur(8px);}
+.stat-chip{font-family:'Cinzel',serif;font-size:0.65rem;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:4px;letter-spacing:0.5px;}
+.stat-chip span{color:var(--gold-light);font-weight:700;}
+#wave-label{font-family:'Cinzel',serif;font-size:0.7rem;color:var(--gold);letter-spacing:2px;text-transform:uppercase;}
 
-        /* CONTENIDO */
-        .content {
-            position: relative;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 48px;
-            width: 100%;
-            max-width: 760px;
-        }
+/* ── SYNERGY PANEL ────────────────────────────────────────── */
+#synergy-panel{position:absolute;top:38px;left:0;width:100%;background:rgba(4,4,10,0.7);border-bottom:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;gap:8px;padding:3px 8px;z-index:99;min-height:22px;flex-wrap:wrap;}
+.syn-badge{font-size:0.58rem;font-family:'Cinzel',serif;padding:2px 6px;border-radius:8px;letter-spacing:0.5px;border:1px solid;display:flex;align-items:center;gap:3px;transition:all 0.3s;}
+.syn-badge.archer{background:rgba(76,155,201,0.15);border-color:rgba(76,155,201,0.4);color:var(--archer);}
+.syn-badge.warrior{background:rgba(201,107,76,0.15);border-color:rgba(201,107,76,0.4);color:var(--warrior);}
+.syn-badge.mage{background:rgba(156,76,201,0.15);border-color:rgba(156,76,201,0.4);color:var(--mage);}
+.syn-badge.support{background:rgba(76,201,122,0.15);border-color:rgba(76,201,122,0.4);color:var(--support);}
+.syn-badge.active{filter:brightness(1.4);box-shadow:0 0 6px currentColor;}
 
-        /* LOGO */
-        .logo-section { text-align: center; }
-        .logo-ball {
-            font-size: 64px;
-            display: block;
-            margin-bottom: 12px;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(-10px); }
-        }
-        .logo-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 72px;
-            letter-spacing: 8px;
-            background: linear-gradient(135deg, #f1c40f, #e67e22);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1;
-        }
-        .logo-sub {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 16px;
-            letter-spacing: 6px;
-            color: rgba(255,255,255,0.25);
-            margin-top: 6px;
-        }
+/* ── CONTROLS ─────────────────────────────────────────────── */
+#ctrl-top-left{position:absolute;top:62px;left:0;display:flex;flex-direction:column;gap:4px;padding:5px 4px;z-index:100;}
+#ctrl-top-right{position:absolute;top:62px;right:0;display:flex;flex-direction:column;gap:4px;padding:5px 4px;z-index:100;}
+#ctrl-bot-right{position:absolute;bottom:46px;right:0;display:flex;flex-direction:column;gap:4px;padding:5px 4px;z-index:100;}
+.ctrl-btn{width:32px;height:32px;border:1px solid rgba(255,255,255,0.08);border-radius:7px;background:rgba(4,4,10,0.75);color:rgba(255,255,255,0.7);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.9rem;transition:all 0.15s;position:relative;backdrop-filter:blur(4px);}
+.ctrl-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.18);color:white;}
+.ctrl-btn:active{transform:scale(0.88);}
+.ctrl-btn.active-state{background:rgba(129,199,132,0.18);border-color:rgba(129,199,132,0.35);color:#81c784;}
 
-        /* CARDS */
-        .modes {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            width: 100%;
-        }
-        .mode-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px;
-            padding: 36px 28px;
-            text-align: center;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            transition: all 0.25s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-            position: relative;
-            overflow: hidden;
-        }
-        .mode-card::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            transition: opacity 0.25s;
-            border-radius: 20px;
-        }
-        .mode-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.15); }
-        .mode-card:hover::before { opacity: 1; }
+/* ── SUMMON ZONE ──────────────────────────────────────────── */
+#summon-zone{position:absolute;bottom:46px;left:0;width:calc(100% - 40px);display:flex;justify-content:center;align-items:center;padding:5px 10px;gap:8px;z-index:50;}
+#summon-btn{flex:1;max-width:200px;height:38px;background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.05));border:1px solid rgba(201,168,76,0.4);border-radius:10px;color:var(--gold-light);font-family:'Cinzel',serif;font-size:0.8rem;letter-spacing:1px;cursor:pointer;transition:all 0.2s;}
+#summon-btn:hover:not(:disabled){background:rgba(201,168,76,0.2);border-color:var(--gold);box-shadow:0 0 10px rgba(201,168,76,0.2);}
+#summon-btn:disabled{opacity:0.3;cursor:not-allowed;}
+#energy-disp{font-family:'Cinzel',serif;font-size:0.7rem;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:3px;}
+#energy-disp span{color:var(--gold-light);font-weight:700;}
 
-        /* OFFLINE */
-        .card-offline::before { background: linear-gradient(135deg, rgba(39,174,96,0.08), transparent); }
-        .card-offline:hover { border-color: rgba(39,174,96,0.4); box-shadow: 0 12px 40px rgba(39,174,96,0.15); }
-        .card-offline .mode-icon { color: #27ae60; }
-        .card-offline .mode-btn { background: #27ae60; }
-        .card-offline .mode-btn:hover { background: #2ecc71; }
+/* ── GRID ─────────────────────────────────────────────────── */
+#bridge-container{position:absolute;left:0;pointer-events:none;margin:0 auto;}
+#grid{display:grid;width:100%;height:100%;pointer-events:auto;}
+.grid-cell{border:1px solid rgba(255,255,255,0.03);background:transparent;pointer-events:none;transition:background 0.4s;}
+.grid-cell.unlocked{border:1px solid rgba(201,168,76,0.08);background:rgba(20,20,35,0.5);}
+.lane-divider{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.02);pointer-events:none;}
 
-        /* ONLINE */
-        .card-online::before { background: linear-gradient(135deg, rgba(241,196,15,0.08), transparent); }
-        .card-online:hover { border-color: rgba(241,196,15,0.4); box-shadow: 0 12px 40px rgba(241,196,15,0.12); }
-        .card-online .mode-icon { color: #f1c40f; }
-        .card-online .mode-btn { background: linear-gradient(135deg, #f1c40f, #e67e22); color: #000; }
+/* ── ENTITIES ─────────────────────────────────────────────── */
+.entity{position:absolute;transform:translate(-50%,-50%);display:flex;justify-content:center;align-items:center;flex-direction:column;}
+.unit{cursor:grab;z-index:50;border-radius:50%;transition:left 0.3s,top 0.3s;}
+.unit:active{cursor:grabbing;transform:translate(-50%,-50%) scale(1.2);z-index:100;transition:none;}
+.rarity-ring{position:absolute;inset:-3px;border-radius:50%;border:2px solid transparent;pointer-events:none;}
+.rarity-ring.common{border-color:var(--common);box-shadow:0 0 6px rgba(107,140,107,0.3);}
+.rarity-ring.rare{border-color:var(--rare);box-shadow:0 0 8px rgba(76,139,201,0.4);animation:ringPulse 2s infinite;}
+.rarity-ring.epic{border-color:var(--epic);box-shadow:0 0 10px rgba(156,76,201,0.5);animation:ringPulse 1.5s infinite;}
+.rarity-ring.legendary{border-color:var(--legend);box-shadow:0 0 14px rgba(201,76,76,0.7);animation:legendRing 1.2s infinite;}
+@keyframes ringPulse{0%,100%{opacity:0.7}50%{opacity:1}}
+@keyframes legendRing{0%,100%{box-shadow:0 0 8px rgba(201,76,76,0.5)}50%{box-shadow:0 0 20px rgba(240,120,120,0.9)}}
+.class-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,0.5);pointer-events:none;z-index:5;}
+.class-dot.archer{background:var(--archer);} .class-dot.warrior{background:var(--warrior);} .class-dot.mage{background:var(--mage);} .class-dot.support{background:var(--support);}
+.level-indicator{position:absolute;bottom:-10px;display:flex;gap:1px;font-size:7px;pointer-events:none;letter-spacing:-1px;}
+.hp-bar-container{position:absolute;bottom:-6px;width:120%;height:3px;background:rgba(255,0,0,0.3);border-radius:2px;overflow:hidden;pointer-events:none;}
+.hp-bar{height:100%;background:#4caf50;width:100%;transition:width 0.1s linear;}
+.enemy{font-size:clamp(16px,5vw,24px);z-index:60;filter:drop-shadow(0 2px 4px black);transition:filter 0.2s;}
+.enemy.boss{font-size:clamp(38px,11vw,56px);filter:drop-shadow(0 0 15px #ff1744);z-index:65;}
+.enemy.boss .hp-bar-container{bottom:-12px;height:6px;}
+.blocker{font-size:clamp(14px,4vw,22px);z-index:40;filter:drop-shadow(0 0 8px rgba(129,199,132,0.8));}
+.projectile{font-size:clamp(10px,3vw,16px);z-index:80;pointer-events:none;filter:drop-shadow(0 0 4px white);}
+.unit[data-level="4"]{animation:pulseMax 1.5s infinite alternate;}
+@keyframes pulseMax{0%{filter:drop-shadow(0 0 8px rgba(255,215,0,0.6))}100%{filter:drop-shadow(0 0 18px rgba(255,255,255,0.9))}}
+#range-indicator{position:absolute;border-radius:50%;background:rgba(255,255,255,0.03);border:1.5px dashed rgba(255,255,255,0.2);transform:translate(-50%,-50%);pointer-events:none;display:none;z-index:45;}
+.floating-text{position:absolute;font-weight:bold;font-size:0.9rem;pointer-events:none;transform:translate(-50%,-50%);z-index:200;animation:floatUp 1s ease-out forwards;text-shadow:0 2px 4px black;font-family:'Cinzel',serif;}
+@keyframes floatUp{0%{opacity:1;margin-top:0}100%{opacity:0;margin-top:-35px}}
+#info-panel{position:absolute;top:65px;left:50%;transform:translateX(-50%);background:rgba(4,4,10,0.95);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:8px 14px;text-align:center;z-index:1000;width:75%;max-width:300px;opacity:0;pointer-events:none;transition:opacity 0.2s;box-shadow:0 4px 20px rgba(0,0,0,0.8);}
+#info-panel h3{margin:0 0 3px;font-size:0.85rem;color:var(--gold-light);font-family:'Cinzel',serif;}
+#info-panel p{margin:0;font-size:0.75rem;color:rgba(255,255,255,0.7);line-height:1.4;}
+#fury-overlay{position:absolute;inset:0;pointer-events:none;z-index:150;background:radial-gradient(ellipse at center,rgba(249,115,22,0) 50%,rgba(249,115,22,0.15) 100%);opacity:0;transition:opacity 0.3s;}
+#fury-overlay.active{opacity:1;}
 
-        .mode-icon { font-size: 48px; }
-        .mode-title {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 28px;
-            letter-spacing: 3px;
-        }
-        .mode-desc {
-            font-size: 13px;
-            color: rgba(255,255,255,0.35);
-            line-height: 1.6;
-            min-height: 56px;
-        }
-        .mode-features {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            width: 100%;
-        }
-        .feature {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: rgba(255,255,255,0.5);
-            text-align: left;
-        }
-        .feature-dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .card-offline .feature-dot { background: #27ae60; }
-        .card-online  .feature-dot { background: #f1c40f; }
+/* ── WORLD MAP SCREEN ─────────────────────────────────────── */
+#world-screen{position:absolute;inset:0;background:linear-gradient(180deg,#020208 0%,#04040f 100%);display:flex;flex-direction:column;align-items:center;z-index:3000;overflow:hidden;}
+.world-header{width:100%;padding:14px 16px 8px;text-align:center;flex-shrink:0;}
+.world-title{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;}
+.world-sub{color:rgba(255,255,255,0.35);font-size:0.75rem;letter-spacing:1px;margin-top:2px;}
+.world-gold-bar{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:6px;font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold-light);}
 
-        .mode-btn {
-            margin-top: 8px;
-            width: 100%;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 10px;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 20px;
-            letter-spacing: 2px;
-            cursor: pointer;
-            color: white;
-            transition: 0.2s;
-            pointer-events: none; /* el click lo maneja el card */
-        }
+/* Stage carousel */
+.stage-carousel{flex:1;display:flex;align-items:center;justify-content:center;position:relative;width:100%;overflow:hidden;}
+.stage-card{width:80%;max-width:280px;background:rgba(10,10,25,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:16px;position:relative;transition:all 0.3s;}
+.stage-card.unlocked{border-color:rgba(201,168,76,0.3);}
+.stage-card.locked{opacity:0.5;filter:grayscale(0.7);}
+.stage-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;color:rgba(255,255,255,0.6);transition:all 0.2s;z-index:10;}
+.stage-nav:hover{background:rgba(255,255,255,0.12);color:white;}
+.stage-nav.left{left:6px;} .stage-nav.right{right:6px;}
+.stage-num{font-family:'Cinzel',serif;font-size:0.7rem;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-bottom:6px;}
+.stage-name{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold-light);letter-spacing:1px;margin-bottom:4px;}
+.stage-desc{font-size:0.78rem;color:rgba(255,255,255,0.5);margin-bottom:10px;line-height:1.4;}
+.stage-stars{display:flex;gap:4px;margin-bottom:10px;font-size:1.3rem;}
+.stage-star{opacity:0.2;transition:opacity 0.3s;filter:grayscale(1);}
+.stage-star.earned{opacity:1;filter:none;}
+.stage-enemies{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.stage-enemy-chip{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:3px 8px;font-size:0.72rem;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:4px;}
+.stage-btn{width:100%;height:40px;background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.05));border:1px solid rgba(201,168,76,0.4);border-radius:10px;color:var(--gold-light);font-family:'Cinzel',serif;font-size:0.85rem;letter-spacing:1px;cursor:pointer;transition:all 0.2s;}
+.stage-btn:hover{background:rgba(201,168,76,0.25);}
+.stage-btn.locked-btn{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3);cursor:not-allowed;}
 
-        /* BADGE NUEVO */
-        .badge-new {
-            position: absolute;
-            top: 14px; right: 14px;
-            background: #f1c40f;
-            color: #000;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 12px;
-            letter-spacing: 1px;
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
+/* World bottom tabs */
+.world-tabs{display:flex;width:100%;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
+.world-tab{flex:1;padding:10px 0;text-align:center;cursor:pointer;font-family:'Cinzel',serif;font-size:0.7rem;color:rgba(255,255,255,0.4);letter-spacing:1px;transition:0.2s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.world-tab:hover{color:rgba(255,255,255,0.7);}
+.world-tab.active{color:var(--gold-light);border-top:2px solid var(--gold);}
+.world-tab-icon{font-size:1.1rem;}
 
-        /* FOOTER */
-        .footer {
-            color: rgba(255,255,255,0.15);
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-align: center;
-        }
+/* ── BESTIARY PANEL ───────────────────────────────────────── */
+#bestiary-panel{position:absolute;inset:0;background:rgba(2,2,10,0.97);z-index:3100;display:none;flex-direction:column;}
+.bestiary-header{padding:14px 16px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);}
+.bestiary-header h2{font-family:'Cinzel',serif;font-size:1rem;color:var(--gold-light);letter-spacing:2px;}
+.bestiary-close{cursor:pointer;font-size:1.2rem;color:rgba(255,255,255,0.5);background:none;border:none;padding:4px 8px;}
+.bestiary-list{flex:1;overflow-y:auto;padding:10px;}
+.bestiary-card{background:rgba(10,10,25,0.8);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;margin-bottom:10px;display:flex;gap:10px;align-items:flex-start;}
+.bestiary-emoji{font-size:2.2rem;flex-shrink:0;width:44px;text-align:center;}
+.bestiary-info{flex:1;}
+.bestiary-name{font-family:'Cinzel',serif;font-size:0.85rem;color:var(--gold-light);margin-bottom:2px;}
+.bestiary-desc{font-size:0.75rem;color:rgba(255,255,255,0.55);margin-bottom:5px;line-height:1.4;}
+.bestiary-counters{display:flex;gap:4px;flex-wrap:wrap;}
+.counter-chip{font-size:0.65rem;padding:2px 7px;border-radius:10px;border:1px solid;}
+.counter-chip.strong{background:rgba(76,201,122,0.15);border-color:rgba(76,201,122,0.4);color:#81c784;}
+.counter-chip.weak{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.4);color:#fca5a5;}
 
-        @media (max-width: 580px) {
-            .modes { grid-template-columns: 1fr; }
-            .logo-title { font-size: 52px; }
-        }
-    </style>
+/* ── DECK SELECT (battle prep) ────────────────────────────── */
+#deck-screen{position:absolute;inset:0;background:linear-gradient(180deg,#04040e 0%,#080814 100%);display:none;flex-direction:column;align-items:center;z-index:2500;padding:14px;overflow-y:auto;}
+#deck-screen h2{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold-light);letter-spacing:2px;margin-bottom:3px;}
+#deck-screen .sub{color:rgba(255,255,255,0.35);font-size:0.75rem;margin-bottom:10px;}
+.player-input{padding:8px 14px;font-size:0.9rem;border-radius:8px;border:1px solid rgba(201,168,76,0.3);outline:none;text-align:center;margin-bottom:10px;width:75%;max-width:220px;background:rgba(255,255,255,0.05);color:white;font-family:'Cinzel',serif;letter-spacing:1px;}
+.player-input::placeholder{color:rgba(255,255,255,0.25);}
+.deck-grid{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:8px;max-width:340px;}
+.deck-card{width:52px;height:68px;background:rgba(255,255,255,0.04);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;border:2px solid rgba(255,255,255,0.08);transition:all 0.2s;position:relative;flex-direction:column;gap:1px;}
+.deck-card:hover{background:rgba(255,255,255,0.08);}
+.deck-card.selected{border-color:var(--gold);background:rgba(201,168,76,0.1);}
+.deck-card.selected::after{content:'✓';position:absolute;top:-5px;right:-5px;font-size:10px;background:var(--gold);color:#000;width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;}
+.deck-card.locked-card{opacity:0.3;cursor:not-allowed;pointer-events:none;}
+.card-rarity{font-size:0.45rem;font-family:'Cinzel',serif;letter-spacing:0.5px;text-transform:uppercase;}
+.card-class{font-size:0.45rem;font-family:'Cinzel',serif;opacity:0.5;}
+.deck-card[data-rarity="common"]{border-color:rgba(107,140,107,0.4);}
+.deck-card[data-rarity="rare"]{border-color:rgba(76,139,201,0.5);}
+.deck-card[data-rarity="epic"]{border-color:rgba(156,76,201,0.5);}
+.deck-card[data-rarity="legendary"]{border-color:rgba(201,76,76,0.6);}
+.deck-card.selected[data-rarity="rare"]{border-color:var(--rare);}
+.deck-card.selected[data-rarity="epic"]{border-color:var(--epic);}
+.deck-card.selected[data-rarity="legendary"]{border-color:var(--legend);}
+#deck-preview-box{min-height:65px;width:100%;max-width:340px;background:rgba(255,255,255,0.03);border-radius:8px;padding:8px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;justify-content:center;}
+#deck-synergy-preview{width:100%;max-width:340px;background:rgba(255,255,255,0.02);border-radius:8px;padding:6px 10px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.05);min-height:30px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;}
+#deck-status{color:rgba(201,168,76,0.8);font-family:'Cinzel',serif;font-size:0.8rem;margin-bottom:8px;letter-spacing:1px;}
+.start-btns{display:flex;gap:8px;}
+.btn-primary{height:40px;padding:0 18px;background:linear-gradient(135deg,rgba(201,168,76,0.2),rgba(201,168,76,0.05));border:1px solid rgba(201,168,76,0.4);border-radius:10px;color:var(--gold-light);font-family:'Cinzel',serif;font-size:0.82rem;letter-spacing:1px;cursor:pointer;transition:all 0.2s;}
+.btn-primary:hover:not(:disabled){background:rgba(201,168,76,0.25);}
+.btn-primary:disabled{opacity:0.3;cursor:not-allowed;}
+.btn-secondary{height:40px;padding:0 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:rgba(255,255,255,0.5);font-family:'Cinzel',serif;font-size:0.82rem;letter-spacing:1px;cursor:pointer;transition:all 0.2s;}
+.btn-secondary:hover{background:rgba(255,255,255,0.08);}
+
+/* ── LEADERBOARD ──────────────────────────────────────────── */
+#leaderboard-modal{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(4,4,14,0.98);border:1px solid rgba(201,168,76,0.3);border-radius:12px;padding:20px;text-align:center;z-index:4000;width:88%;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.9);display:none;flex-direction:column;}
+#leaderboard-modal h2{font-family:'Cinzel',serif;color:var(--gold-light);font-size:1.1rem;letter-spacing:2px;margin-bottom:5px;}
+.filter-tabs{display:flex;justify-content:center;gap:5px;margin:8px 0;flex-wrap:wrap;}
+.filter-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:4px 8px;border-radius:12px;cursor:pointer;font-size:0.72rem;font-family:'Cinzel',serif;transition:0.2s;}
+.filter-btn.active{background:rgba(201,168,76,0.2);border-color:var(--gold);color:var(--gold-light);}
+#leaderboard-list{list-style:none;padding:0;margin:8px 0;text-align:left;color:rgba(255,255,255,0.7);max-height:200px;overflow-y:auto;font-size:0.88rem;}
+#leaderboard-list li{padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;}
+#admin-panel{display:none;flex-direction:column;gap:6px;margin-top:10px;padding:10px;background:rgba(255,0,0,0.08);border:1px dashed rgba(255,0,0,0.3);border-radius:8px;}
+#admin-panel input{padding:6px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);text-align:center;background:rgba(255,255,255,0.05);color:white;}
+
+/* ── END SCREEN / STARS / CHESTS ─────────────────────────── */
+#end-screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:1500;background:rgba(4,4,10,0.93);backdrop-filter:blur(8px);gap:6px;padding:16px;}
+#end-title{font-family:'Cinzel',serif;font-size:2rem;font-weight:900;letter-spacing:3px;}
+#end-title.victory{background:linear-gradient(135deg,var(--gold),var(--gold-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+#end-title.defeat{color:var(--legend-light);}
+#end-subtitle{color:rgba(255,255,255,0.5);font-size:0.9rem;letter-spacing:1px;}
+#end-stars{display:flex;gap:8px;font-size:2rem;margin:4px 0;}
+.end-star{opacity:0.2;transition:all 0.5s;filter:grayscale(1);transform:scale(0.7);}
+.end-star.earned{opacity:1;filter:none;transform:scale(1);}
+#end-chests{display:flex;gap:10px;margin:6px 0;}
+.chest-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;}
+.chest-box{font-size:2rem;transition:transform 0.2s;position:relative;}
+.chest-box:hover{transform:scale(1.1);}
+.chest-label{font-size:0.65rem;color:rgba(255,255,255,0.4);font-family:'Cinzel',serif;}
+.chest-box.opened{opacity:0.4;}
+#chest-reward-popup{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(4,4,14,0.98);border:1px solid rgba(201,168,76,0.4);border-radius:14px;padding:20px;text-align:center;z-index:5000;width:82%;max-width:300px;display:none;flex-direction:column;gap:8px;box-shadow:0 0 40px rgba(201,168,76,0.2);}
+.chest-reward-title{font-family:'Cinzel',serif;color:var(--gold-light);font-size:1rem;letter-spacing:1px;}
+.chest-reward-items{display:flex;flex-direction:column;gap:6px;font-size:0.85rem;color:rgba(255,255,255,0.7);}
+.reward-line{padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:6px;display:flex;align-items:center;gap:8px;}
+.end-btn{height:40px;padding:0 22px;border-radius:10px;cursor:pointer;font-family:'Cinzel',serif;font-size:0.82rem;letter-spacing:1px;transition:all 0.2s;margin-top:4px;}
+.end-btn.primary{background:rgba(201,168,76,0.2);border:1px solid rgba(201,168,76,0.4);color:var(--gold-light);}
+.end-btn.secondary{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);}
+.end-btn:hover{filter:brightness(1.2);}
+</style>
 </head>
 <body>
+<div id="game-area">
 
-<div class="bg"></div>
-<div class="bg-grid"></div>
-
-<div class="content">
-
-    <!-- LOGO -->
-    <div class="logo-section">
-        <span class="logo-ball">⚽</span>
-        <div class="logo-title">LIGA 1</div>
-        <div class="logo-sub">SIMULATOR · PERÚ</div>
+  <!-- ═══ WORLD MAP SCREEN ════════════════════════════════════ -->
+  <div id="world-screen">
+    <div class="world-header">
+      <div class="world-title">El Estanque Sagrado</div>
+      <div class="world-sub">Protege el estanque de las sombras</div>
+      <div class="world-gold-bar">🪙 <span id="world-gold">0</span> oro</div>
     </div>
 
-    <!-- MODOS -->
-    <div class="modes">
-
-        <!-- OFFLINE -->
-        <a href="game.html" class="mode-card card-offline">
-            <div class="mode-icon">🎮</div>
-            <div class="mode-title">Modo Offline</div>
-            <div class="mode-desc">Juega solo, sin cuenta. Tu progreso se guarda en el navegador.</div>
-            <div class="mode-features">
-                <div class="feature"><span class="feature-dot"></span>Liga y Copa del Rey</div>
-                <div class="feature"><span class="feature-dot"></span>Penales animados</div>
-                <div class="feature"><span class="feature-dot"></span>Mercado de jugadores</div>
-                <div class="feature"><span class="feature-dot"></span>Sin internet necesario</div>
-            </div>
-            <div class="mode-btn">⚽ JUGAR AHORA</div>
-        </a>
-
-        <!-- ONLINE -->
-        <a href="login.html" class="mode-card card-online">
-            <span class="badge-new">ONLINE</span>
-            <div class="mode-icon">🌐</div>
-            <div class="mode-title">Modo Online</div>
-            <div class="mode-desc">Crea tu equipo, compite en jornadas y sigue la tabla de posiciones en vivo.</div>
-            <div class="mode-features">
-                <div class="feature"><span class="feature-dot"></span>34 jornadas · 306 partidos</div>
-                <div class="feature"><span class="feature-dot"></span>Tabla de posiciones en vivo</div>
-                <div class="feature"><span class="feature-dot"></span>Tu equipo personalizado</div>
-                <div class="feature"><span class="feature-dot"></span>Requiere cuenta gratuita</div>
-            </div>
-            <div class="mode-btn">🏆 ENTRAR AL ONLINE</div>
-        </a>
-
+    <div class="stage-carousel">
+      <div class="stage-nav left" onclick="prevStage()">‹</div>
+      <div class="stage-card" id="stage-card"><!-- filled by JS --></div>
+      <div class="stage-nav right" onclick="nextStage()">›</div>
     </div>
 
-    <div class="footer">LIGA 1 SIMULATOR · TEMPORADA 2025</div>
+    <div class="world-tabs">
+      <div class="world-tab active" id="tab-stages" onclick="worldTab('stages')">
+        <div class="world-tab-icon">🗺️</div>STAGES
+      </div>
+      <div class="world-tab" id="tab-bestiary" onclick="worldTab('bestiary')">
+        <div class="world-tab-icon">📖</div>BESTIARIO
+      </div>
+      <div class="world-tab" id="tab-ranking" onclick="worldTab('ranking')">
+        <div class="world-tab-icon">🏆</div>RANKING
+      </div>
+    </div>
+  </div>
 
+  <!-- ═══ BESTIARY PANEL ════════════════════════════════════ -->
+  <div id="bestiary-panel">
+    <div class="bestiary-header">
+      <h2>📖 Bestiario</h2>
+      <button class="bestiary-close" onclick="closeBestiary()">✕</button>
+    </div>
+    <div class="bestiary-list" id="bestiary-list"><!-- filled by JS --></div>
+  </div>
+
+  <!-- ═══ DECK SELECT SCREEN ════════════════════════════════ -->
+  <div id="deck-screen">
+    <h2>Elige tus Guardianes</h2>
+    <div class="sub" id="deck-stage-label">Stage 1 · El Bosque Corrupto</div>
+    <input type="text" id="player-name" class="player-input" placeholder="Tu nombre..." maxlength="15"/>
+    <div class="deck-grid" id="deck-grid"></div>
+    <div id="deck-preview-box">
+      <em style="color:rgba(255,255,255,0.3);font-size:0.78rem;">Toca un guardián para ver sus poderes</em>
+    </div>
+    <div id="deck-synergy-preview">
+      <em style="color:rgba(255,255,255,0.2);font-size:0.7rem;">Las sinergias se mostrarán aquí</em>
+    </div>
+    <div id="deck-status">0 / 4 Seleccionados</div>
+    <div class="start-btns">
+      <button id="btn-start-game" class="btn-primary" disabled onclick="startGame()">⚔ Comenzar</button>
+      <button class="btn-secondary" onclick="showWorldScreen()">← Volver</button>
+    </div>
+  </div>
+
+  <!-- ═══ LEADERBOARD MODAL ═════════════════════════════════ -->
+  <div id="leaderboard-modal">
+    <div style="display:flex;justify-content:center;align-items:center;gap:8px;position:relative;">
+      <h2>Mejores Defensores</h2>
+      <span style="cursor:pointer;font-size:1rem;opacity:0.3;transition:0.2s;" onmouseenter="this.style.opacity=0.8" onmouseleave="this.style.opacity=0.3" onclick="toggleAdminPanel()">🔒</span>
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-btn active" id="tab-daily" onclick="filterLeaderboard('daily')">Hoy</button>
+      <button class="filter-btn" id="tab-weekly" onclick="filterLeaderboard('weekly')">Semana</button>
+      <button class="filter-btn" id="tab-all" onclick="filterLeaderboard('all')">Todo</button>
+    </div>
+    <ul id="leaderboard-list"></ul>
+    <div id="admin-panel">
+      <h4 style="margin:0;color:#ff5252;font-family:'Cinzel',serif;font-size:0.78rem;">Zona Admin</h4>
+      <input type="password" id="admin-pwd" placeholder="Clave..."/>
+      <button class="btn-primary" onclick="adminWipeRankings()" style="font-size:0.72rem;height:32px;border-color:rgba(255,0,0,0.4);">💥 Borrar Todo</button>
+    </div>
+    <button class="btn-secondary" style="margin-top:8px;height:34px;width:100%;cursor:pointer;border-radius:8px;" onclick="hideLeaderboard()">Cerrar</button>
+  </div>
+
+  <!-- ═══ END SCREEN ═════════════════════════════════════════ -->
+  <div id="end-screen">
+    <div id="end-title">Victoria</div>
+    <div id="end-subtitle">El Estanque ha sido protegido</div>
+    <div id="end-stars">
+      <span class="end-star" id="star1">⭐</span>
+      <span class="end-star" id="star2">⭐</span>
+      <span class="end-star" id="star3">⭐</span>
+    </div>
+    <div id="end-chests"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="end-btn primary" onclick="restartSameDeck()">↺ Reintentar</button>
+      <button class="end-btn secondary" onclick="showWorldScreen()">🗺️ Mapa</button>
+    </div>
+  </div>
+
+  <!-- ═══ CHEST REWARD POPUP ════════════════════════════════ -->
+  <div id="chest-reward-popup">
+    <div class="chest-reward-title">🎁 Cofre Abierto</div>
+    <div class="chest-reward-items" id="chest-reward-items"></div>
+    <button class="btn-primary" onclick="closeChestPopup()" style="margin-top:4px;">¡Genial!</button>
+  </div>
+
+  <!-- ═══ BATTLE HUD ══════════════════════════════════════════ -->
+  <div id="top-stats">
+    <div class="stat-chip">💧 <span id="energy-val">60</span></div>
+    <div id="wave-label">OLEADA <span id="wave-val">1</span>/10</div>
+    <div class="stat-chip">Estanque <span id="hp-val">100%</span></div>
+  </div>
+  <div id="synergy-panel"></div>
+  <div id="ctrl-top-left">
+    <button class="ctrl-btn" id="pause-btn" onclick="togglePause()">⏸</button>
+    <button class="ctrl-btn" id="speed-btn" onclick="cycleSpeed()">1×</button>
+  </div>
+  <div id="ctrl-top-right">
+    <button class="ctrl-btn" id="auto-btn" onclick="toggleAuto()">🤖</button>
+    <button class="ctrl-btn" id="music-btn" onclick="toggleMusic()">🎵</button>
+  </div>
+  <div id="ctrl-bot-right">
+    <button class="ctrl-btn" onclick="openLeaderboard()">🏆</button>
+    <button class="ctrl-btn" onclick="showWorldScreen()" style="font-size:0.7rem;">🗺️</button>
+  </div>
+  <div id="info-panel">
+    <div id="info-rarity" style="font-size:0.65rem;letter-spacing:1px;font-family:'Cinzel',serif;margin-bottom:2px;"></div>
+    <h3 id="info-title"></h3>
+    <div id="info-class" style="font-size:0.65rem;opacity:0.7;margin-bottom:3px;"></div>
+    <p id="info-desc"></p>
+    <div id="info-lvl4" style="font-size:0.68rem;color:var(--gold);margin-top:3px;"></div>
+    <div id="info-counter" style="font-size:0.65rem;margin-top:3px;"></div>
+  </div>
+  <div id="range-indicator"></div>
+  <div id="bridge-container"><div id="grid"></div></div>
+  <div id="fury-overlay"></div>
+  <div id="summon-zone">
+    <div id="energy-disp">💧<span id="energy-sum">60</span></div>
+    <button id="summon-btn" onclick="summonUnit()">⚔ INVOCAR · 15</button>
+  </div>
+  <div id="pond-bar">
+    <div id="pond-fury-track"><div id="pond-fury-fill"></div></div>
+    <div id="pond-fury-icon" onclick="activateFury()">🔥</div>
+    <div id="pond-label">Estanque</div>
+    <div id="pond-hp-track"><div id="pond-hp-fill"></div></div>
+    <div id="pond-hp-text">100%</div>
+  </div>
 </div>
 
+<audio id="bg-music" playsinline preload="auto"></audio>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  EL ESTANQUE SAGRADO — Sistema completo
+// ═══════════════════════════════════════════════════════════════
+
+// ── CONSTANTES ──────────────────────────────────────────────────
+var COLS = 10, ROWS = 3;
+
+var RARITY_MULT = { common:1, rare:1.4, epic:2, legendary:3.5 };
+var SYNERGIES = {
+  archer:  { name:'Arqueros',  icon:'🏹', thresholds:[{n:2,desc:'+20% Rango',key:'archer_range'},{n:4,desc:'+40% Daño',key:'archer_dmg'}] },
+  warrior: { name:'Guerreros', icon:'⚔️', thresholds:[{n:2,desc:'Guard +50%HP',key:'warrior_hp'},{n:4,desc:'Guard Regenera',key:'warrior_regen'}] },
+  mage:    { name:'Magos',     icon:'🔮', thresholds:[{n:2,desc:'+30% Estado',key:'mage_effect'},{n:4,desc:'Efectos Cadena',key:'mage_chain'}] },
+  support: { name:'Soportes',  icon:'💚', thresholds:[{n:2,desc:'+2💧 Extra',key:'support_econ'},{n:4,desc:'Invocar cuesta 10',key:'support_cost'}] }
+};
+
+// counter: qué enemigos esta unidad countera (hace +40% daño)
+// counteredBy: qué tipos de enemigos la contrarrestan (reciben -20% daño de esta)
+var ALL_UNITS = {
+  tree:      { emoji:'🌳', type:'tree',      cooldown:12,  role:'econ',     rangeCells:0,   dmg:0,  speed:0,   proj:'',  rarity:'common',    cls:'support', locked:false,
+    name:'Árbol Sagrado',      desc:'Genera energía con cada ciclo.',              lvl4:'Nivel 4: Produce energía masivamente.',
+    ability:'Genera +1💧 por rareza. Legendario cura el estanque.',
+    counter:['basic'], counteredBy:['golem'] },
+  owl:       { emoji:'🦉', type:'owl',       cooldown:0.9, role:'dps',      rangeCells:5.5, dmg:10, speed:450, proj:'✨', rarity:'common',    cls:'archer',  locked:false,
+    name:'Búho Vigía',         desc:'Dispara estrellas a larga distancia.',        lvl4:'Nivel 4: Proyectil traspasa enemigos.',
+    ability:'Raro: doble disparo. Épico: crítico cada 3. Leg: abanico de 3.',
+    counter:['basic'], counteredBy:['eye','swarm'] },
+  frog:      { emoji:'🐸', type:'frog',      cooldown:1.5, role:'slow',     rangeCells:3.85,dmg:5,  speed:350, proj:'💧', rarity:'common',    cls:'mage',    locked:false,
+    name:'Rana Guardiana',     desc:'Sus gotas ralentizan a las sombras.',         lvl4:'Nivel 4: Congela área completa.',
+    ability:'Épico: aura de frío pasiva. Leg: 30% chance de congelar al impactar.',
+    counter:['eye','basic'], counteredBy:['boss'] },
+  bear:      { emoji:'🐻', type:'bear',      cooldown:5,   role:'summoner', rangeCells:4.5, dmg:10, speed:0,   proj:'',  rarity:'rare',      cls:'warrior', locked:false,
+    name:'Oso Protector',      desc:'Invoca guardianes cuando hay amenazas cerca.', lvl4:'Nivel 4: Invoca Osos Ancestrales.',
+    ability:'Invoca osos con HP según nivel. Leg: invoca 2 a la vez. Máx 3 activos.',
+    counter:['golem','boss'], counteredBy:['eye'] },
+  turtle:    { emoji:'🐢', type:'turtle',    cooldown:3.5, role:'heavy',    rangeCells:6.0, dmg:35, speed:200, proj:'🌊', rarity:'rare',      cls:'warrior', locked:false,
+    name:'Tortuga Cañón',      desc:'Lenta pero devastadora. Olas con daño masivo.',lvl4:'Nivel 4: Olas colosales con salpicadura.',
+    ability:'Cada 3er disparo empuja la columna entera hacia atrás.',
+    counter:['golem','boss'], counteredBy:['swarm'] },
+  squirrel:  { emoji:'🐿️', type:'squirrel',  cooldown:2,   role:'splash',   rangeCells:4.5, dmg:8,  speed:320, proj:'🌰', rarity:'epic',      cls:'archer',  locked:false,
+    name:'Ardilla Bombardera', desc:'Bellotas explosivas dañan en área.',          lvl4:'Nivel 4: Mega explosión que empuja enemigos.',
+    ability:'Leg: explosiones dejan nube de humo que ralentiza.',
+    counter:['swarm','basic'], counteredBy:['golem'] },
+  butterfly: { emoji:'🦋', type:'butterfly', cooldown:1.2, role:'chain',    rangeCells:4.5, dmg:7,  speed:500, proj:'⚡', rarity:'epic',      cls:'mage',    locked:false,
+    name:'Mariposa Eléctrica', desc:'Rayos que rebotan entre enemigos cercanos.',  lvl4:'Nivel 4: Rebota en 5 y paraliza.',
+    ability:'Leg: deja carga estática en el objetivo (+50% daño siguiente impacto).',
+    counter:['eye','swarm'], counteredBy:['golem'] },
+  phoenix:   { emoji:'🔥', type:'phoenix',   cooldown:2.5, role:'burn',     rangeCells:5.0, dmg:12, speed:380, proj:'🌸', rarity:'legendary', cls:'mage',    locked:false,
+    name:'Fénix Guardián',     desc:'Sus llamas queman continuamente a los enemigos.',lvl4:'Nivel 4: Explosión que destruye a todos.',
+    ability:'Enemigos quemados explotan al morir dañando a los cercanos.',
+    counter:['swarm','basic'], counteredBy:['eye'] },
+  dragon:    { emoji:'🐉', type:'dragon',    cooldown:4.0, role:'dps',      rangeCells:7.0, dmg:45, speed:300, proj:'💎', rarity:'legendary', cls:'archer',  locked:false,
+    name:'Dragón del Estanque',desc:'El guardián supremo. Daño colosal a distancia.',lvl4:'Nivel 4: Proyectil arrasa toda la columna.',
+    ability:'Cada 5to disparo: Aliento de Dragón (quema toda la columna en área).',
+    counter:['golem','boss'], counteredBy:['swarm'] },
+  eagle:     { emoji:'🦅', type:'eagle',     cooldown:3.0, role:'mark',     rangeCells:6.0, dmg:18, speed:500, proj:'🔴', rarity:'epic',      cls:'archer',  locked:true,
+    name:'Águila Cazadora',    desc:'Marca un enemigo — todos los proyectiles le hacen +30% daño.',lvl4:'Nivel 4: Marca hasta 3 enemigos simultáneamente.',
+    ability:'Marca persiste 5s. Leg: la marca se propaga al enemigo más cercano al morir.',
+    counter:['boss','golem'], counteredBy:['swarm'] }
+};
+
+// ── ENEMIGOS ─────────────────────────────────────────────────────
+// type: basic, eye, golem, swarm + boss/finalboss
+var ENEMY_DEFS = {
+  basic: { emoji:'🌑', name:'Sombra',        desc:'Enemigo estándar de las sombras.', stage:1, hp:1,   speed:1,   size:'normal', counteredBy:['owl','frog','phoenix','squirrel'], counters:['tree'] },
+  eye:   { emoji:'👁️', name:'Ojo Corrupto',  desc:'Rápido y esquivo. Difícil de golpear para unidades lentas.', stage:2, hp:0.5, speed:2.2, size:'normal', counteredBy:['frog','butterfly','eagle'], counters:['owl','dragon','phoenix'] },
+  golem: { emoji:'🧿', name:'Gólem de Sombra',desc:'Lento y muy resistente. Golpea fuerte al estanque.', stage:2, hp:4,   speed:0.5, size:'heavy',  counteredBy:['turtle','bear','dragon','eagle'], counters:['tree','squirrel','butterfly'] },
+  swarm: { emoji:'🦇', name:'Enjambre',       desc:'Llega en grupos de 3. Débil individualmente pero abrumador.',stage:2, hp:0.4, speed:1.8, size:'normal', counteredBy:['squirrel','phoenix','butterfly'], counters:['owl','dragon','turtle'] }
+};
+
+// ── STAGES ───────────────────────────────────────────────────────
+var STAGES = [
+  { id:1, name:'El Bosque Corrupto', desc:'Las sombras emergen del bosque oscuro.', bg:'linear-gradient(180deg,#0d1a0d 0%,#080f08 100%)', enemies:['basic'], boss:'👹', finalBoss:'👿', unlocked:true,  stars:0, unlockUnit:'eagle' },
+  { id:2, name:'Las Ruinas Antiguas', desc:'Criaturas ancestrales defienden las ruinas.', bg:'linear-gradient(180deg,#1a0d0d 0%,#0f0808 100%)', enemies:['basic','eye','golem','swarm'], boss:'💀', finalBoss:'☠️', unlocked:false, stars:0, unlockUnit:null }
+];
+var currentStageIdx = 0;
+var currentStageId = 1;
+
+// ── PROGRESIÓN ────────────────────────────────────────────────────
+var playerData = (function() {
+  var d = localStorage.getItem('estanque_player');
+  return d ? JSON.parse(d) : { gold:0, chestsOpened:{}, stage1Stars:0, stage2Stars:0 };
+})();
+function savePlayerData() { localStorage.setItem('estanque_player', JSON.stringify(playerData)); }
+
+// ── ESTADO DE JUEGO ───────────────────────────────────────────────
+var cellW = 0, cellH = 0;
+var selectedDeck = [], units = [], blockers = [], enemies = [], projectiles = [];
+var audioCtx = null, isMusicEnabled = false, gameSpeed = 1;
+var furyMeter = 0, furyActive = false;
+var activeSynergies = {};
+var allScoresCache = [];
+var state = {
+  energy:60, pondHp:100, summonCost:15, unlockedCount:COLS*ROWS, scoreSaved:false,
+  isRunning:false, isPaused:false, autoMode:false, autoTimer:0,
+  timeElapsed:0, wave:1, maxWave:10, spawnTimer:0, lastFrame:0,
+  boss5Spawned:false, boss10Spawned:false, victoryPending:false, stageId:1
+};
+
+var gameArea = document.getElementById('game-area');
+var gridEl = document.getElementById('grid');
+var bridgeContainer = document.getElementById('bridge-container');
+var rangeIndicator = document.getElementById('range-indicator');
+var bgMusic = document.getElementById('bg-music');
+var infoPanel = document.getElementById('info-panel');
+
+// ── MÚSICA ───────────────────────────────────────────────────────
+var musicPlaylist = ['pista1.mp3','pista2.mp3'];
+function playRandomMusic() { if(!isMusicEnabled)return; bgMusic.src=musicPlaylist[Math.floor(Math.random()*musicPlaylist.length)]; bgMusic.play().catch(function(){}); }
+function toggleMusic() { isMusicEnabled=!isMusicEnabled; var b=document.getElementById('music-btn'); if(isMusicEnabled){b.style.background='rgba(129,199,132,0.18)';playRandomMusic();}else{bgMusic.pause();b.style.background='';} }
+bgMusic.addEventListener('ended',function(){setTimeout(playRandomMusic,500);});
+
+// ── AUDIO ────────────────────────────────────────────────────────
+var scale = [261.63,329.63,392,523.25];
+function playChime(type) {
+  if(!audioCtx)return;
+  try {
+    if(audioCtx.state==='suspended')audioCtx.resume();
+    var osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+    var note=scale[Math.floor(Math.random()*scale.length)];
+    if(type==='merge')note*=1.5; if(type==='hit')note*=0.5;
+    osc.type='sine'; osc.frequency.setValueAtTime(note,audioCtx.currentTime);
+    gain.gain.setValueAtTime(0,audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(type==='hit'?0.04:0.12,audioCtx.currentTime+0.05);
+    gain.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime+0.8);
+    osc.connect(gain);gain.connect(audioCtx.destination);
+    osc.start();osc.stop(audioCtx.currentTime+0.8);
+  }catch(e){}
+}
+
+// ── SINERGIAS (basadas en mazo elegido) ───────────────────────────
+function computeSynergiesFromDeck(deck) {
+  var counts = {archer:0,warrior:0,mage:0,support:0};
+  for(var i=0;i<deck.length;i++){
+    var c=ALL_UNITS[deck[i]].cls;
+    if(c&&counts[c]!==undefined) counts[c]++;
+  }
+  var active = {};
+  for(var cls in SYNERGIES){
+    SYNERGIES[cls].thresholds.forEach(function(t){ if(counts[cls]>=t.n)active[t.key]=true; });
+  }
+  return {active:active, counts:counts};
+}
+function computeSynergies() {
+  var res = computeSynergiesFromDeck(selectedDeck);
+  activeSynergies = res.active;
+  updateSynergyPanel(res.counts);
+  state.summonCost = activeSynergies['support_cost']?10:15;
+  document.getElementById('summon-btn').textContent='\u2694 INVOCAR \u00b7'+state.summonCost;
+}
+function updateSynergyPanel(counts) {
+  var panel=document.getElementById('synergy-panel'); panel.innerHTML='';
+  for(var cls in SYNERGIES){
+    var syn=SYNERGIES[cls],n=counts[cls]; if(n===0)continue;
+    var activeThresh=null;
+    syn.thresholds.forEach(function(t){if(n>=t.n)activeThresh=t;});
+    var badge=document.createElement('div');
+    badge.className='syn-badge '+cls+(activeThresh?' active':'');
+    badge.textContent=syn.icon+' '+syn.name+' ('+n+')'+(activeThresh?' · '+activeThresh.desc:'');
+    panel.appendChild(badge);
+  }
+}
+function getSynDmgMult(unit) {
+  var m=1;
+  if(unit.baseData.cls==='archer'&&activeSynergies['archer_dmg'])m*=1.4;
+  return m*RARITY_MULT[unit.baseData.rarity];
+}
+function getSynRange(unit) {
+  var r=unit.baseData.rangeCells;
+  if(unit.baseData.cls==='archer'&&activeSynergies['archer_range'])r*=1.2;
+  return r;
+}
+// Counter damage multiplier: unit vs enemy type
+function getCounterMult(unitType, enemyType) {
+  var ud=ALL_UNITS[unitType];
+  if(!ud)return 1;
+  if(ud.counter&&ud.counter.indexOf(enemyType)>=0)return 1.4;
+  if(ud.counteredBy&&ud.counteredBy.indexOf(enemyType)>=0)return 0.7;
+  return 1;
+}
+
+// ── FURIA ────────────────────────────────────────────────────────
+function addFury(amount) {
+  furyMeter=Math.min(100,furyMeter+amount);
+  document.getElementById('pond-fury-fill').style.width=furyMeter+'%';
+  document.getElementById('pond-fury-icon').style.filter=furyMeter>=100?'drop-shadow(0 0 6px #f97316)':'';
+}
+function activateFury() {
+  if(furyMeter<100||furyActive)return;
+  furyActive=true;furyMeter=0;
+  document.getElementById('pond-fury-fill').style.width='0%';
+  document.getElementById('fury-overlay').classList.add('active');
+  spawnText(gameArea.clientWidth/2,gameArea.clientHeight/2,'💥 FURIA 💥','#f97316');
+  for(var i=0;i<enemies.length;i++){enemies[i].speedMultiplier=0;enemies[i].slowTimer=3.0;}
+  playChime('merge');
+  setTimeout(function(){furyActive=false;document.getElementById('fury-overlay').classList.remove('active');},3000);
+}
+
+// ── UI ───────────────────────────────────────────────────────────
+function updateUI() {
+  var e=Math.floor(state.energy);
+  document.getElementById('energy-val').textContent=e;
+  document.getElementById('energy-sum').textContent=e;
+  document.getElementById('wave-val').textContent=state.wave;
+  document.getElementById('hp-val').textContent=Math.floor(state.pondHp)+'%';
+  document.getElementById('pond-hp-text').textContent=Math.floor(state.pondHp)+'%';
+  var hp=Math.max(0,state.pondHp);
+  document.getElementById('pond-hp-fill').style.width=hp+'%';
+  var fill=document.getElementById('pond-hp-fill');
+  if(hp>50)fill.style.background='linear-gradient(90deg,#0ea5e9,#38bdf8)';
+  else if(hp>25)fill.style.background='linear-gradient(90deg,#f97316,#fb923c)';
+  else fill.style.background='linear-gradient(90deg,#ef4444,#f87171)';
+  document.getElementById('summon-btn').disabled=state.energy<state.summonCost;
+}
+function spawnText(x,y,text,color) {
+  var el=document.createElement('div');
+  el.className='floating-text';el.textContent=text;
+  el.style.left=x+'px';el.style.top=y+'px';el.style.color=color||'#f0d078';
+  gameArea.appendChild(el);
+  setTimeout(function(){if(el.parentNode)el.remove();},1000);
+}
+
+// ── VELOCIDAD ────────────────────────────────────────────────────
+var speedList=[1,2,0.5],speedLabels=['1×','2×','½×'],speedIdx=0;
+function cycleSpeed(){speedIdx=(speedIdx+1)%3;gameSpeed=speedList[speedIdx];document.getElementById('speed-btn').textContent=speedLabels[speedIdx];}
+
+// ── LEADERBOARD ──────────────────────────────────────────────────
+function saveScore() {
+  var name=(document.getElementById('player-name').value.trim()||'Anónimo');
+  var data={name:name,wave:state.wave,stageId:state.stageId,date:new Date().toISOString()};
+  var ls=JSON.parse(localStorage.getItem('estanque_ranking')||'[]');
+  ls.push(data); localStorage.setItem('estanque_ranking',JSON.stringify(ls));
+}
+function openLeaderboard() {
+  document.getElementById('leaderboard-modal').style.display='flex';
+  document.getElementById('admin-panel').style.display='none';
+  allScoresCache=JSON.parse(localStorage.getItem('estanque_ranking')||'[]');
+  filterLeaderboard('all');
+}
+function filterLeaderboard(filter) {
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  var tabEl=document.getElementById('tab-'+filter); if(tabEl)tabEl.classList.add('active');
+  var listEl=document.getElementById('leaderboard-list'); listEl.innerHTML='';
+  var now=new Date();
+  var filtered=allScoresCache.filter(function(s){
+    if(!s.date)return false;
+    var diff=Math.abs(now-new Date(s.date))/(1000*60*60*24);
+    if(filter==='daily')return diff<=1; if(filter==='weekly')return diff<=7; return true;
+  }).sort(function(a,b){return b.wave-a.wave;}).slice(0,10);
+  if(filtered.length===0){listEl.innerHTML='<li style="justify-content:center;color:rgba(255,255,255,0.3);">Sin récords aún</li>';return;}
+  filtered.forEach(function(s,idx){
+    var li=document.createElement('li');
+    li.innerHTML='<span>#'+(idx+1)+'. '+s.name+'</span><span>🌊 '+s.wave+(s.stageId?' S'+s.stageId:'')+'</span>';
+    listEl.appendChild(li);
+  });
+}
+function hideLeaderboard(){document.getElementById('leaderboard-modal').style.display='none';}
+function toggleAdminPanel(){var p=document.getElementById('admin-panel');p.style.display=p.style.display==='flex'?'none':'flex';}
+function adminWipeRankings(){
+  var pwd=document.getElementById('admin-pwd').value;
+  if(pwd!=='secreto123'){document.getElementById('admin-pwd').placeholder='¡Incorrecta!';document.getElementById('admin-pwd').value='';return;}
+  localStorage.removeItem('estanque_ranking');allScoresCache=[];
+  document.getElementById('admin-pwd').value='';toggleAdminPanel();openLeaderboard();
+}
+
+// ── WORLD MAP ────────────────────────────────────────────────────
+var rarityColors={common:'#9bbf9b',rare:'#78b0f0',epic:'#c078f0',legendary:'#f07878'};
+var classNames={archer:'🏹 Arquero',warrior:'⚔️ Guerrero',mage:'🔮 Mago',support:'💚 Soporte'};
+
+function showWorldScreen() {
+  document.getElementById('world-screen').style.display='flex';
+  document.getElementById('deck-screen').style.display='none';
+  document.getElementById('end-screen').style.display='none';
+  state.isRunning=false;
+  // Sync stars from saved data
+  STAGES[0].stars=playerData.stage1Stars||0;
+  STAGES[1].stars=playerData.stage2Stars||0;
+  STAGES[1].unlocked=STAGES[0].stars>0;
+  document.getElementById('world-gold').textContent=playerData.gold;
+  renderStageCard();
+}
+function worldTab(tab) {
+  document.querySelectorAll('.world-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='bestiary'){openBestiary();}
+  else if(tab==='ranking'){openLeaderboard();}
+}
+function prevStage(){currentStageIdx=Math.max(0,currentStageIdx-1);renderStageCard();}
+function nextStage(){currentStageIdx=Math.min(STAGES.length-1,currentStageIdx+1);renderStageCard();}
+
+function renderStageCard() {
+  var sg=STAGES[currentStageIdx];
+  var card=document.getElementById('stage-card');
+  card.className='stage-card '+(sg.unlocked?'unlocked':'locked');
+  var starsHtml='';
+  for(var i=1;i<=3;i++) starsHtml+='<span class="stage-star'+(sg.stars>=i?' earned':'')+'">⭐</span>';
+  var enemyChips='';
+  sg.enemies.forEach(function(et){var ed=ENEMY_DEFS[et];enemyChips+='<div class="stage-enemy-chip">'+ed.emoji+' '+ed.name+'</div>';});
+  if(sg.id>1) enemyChips+='<div class="stage-enemy-chip">'+sg.boss+' Jefe</div>';
+  card.innerHTML=
+    '<div class="stage-num">STAGE '+sg.id+'</div>'+
+    '<div class="stage-name">'+sg.name+'</div>'+
+    '<div class="stage-desc">'+sg.desc+'</div>'+
+    '<div class="stage-stars">'+starsHtml+'</div>'+
+    '<div class="stage-enemies">'+enemyChips+'</div>'+
+    (sg.unlocked
+      ? '<button class="stage-btn" onclick="openDeckSelect('+sg.id+')">⚔ '+(sg.stars>0?'Rejugar':'Jugar')+'</button>'
+      : '<div class="stage-btn locked-btn">🔒 Completa Stage '+(sg.id-1)+'</div>');
+}
+
+// ── BESTIARY ─────────────────────────────────────────────────────
+function openBestiary() {
+  var panel=document.getElementById('bestiary-panel');
+  panel.style.display='flex';
+  var list=document.getElementById('bestiary-list');
+  list.innerHTML='';
+  var unitCounterNames={owl:'Búho',frog:'Rana',bear:'Oso',turtle:'Tortuga',squirrel:'Ardilla',butterfly:'Mariposa',phoenix:'Fénix',dragon:'Dragón',eagle:'Águila',tree:'Árbol'};
+  for(var et in ENEMY_DEFS){
+    var ed=ENEMY_DEFS[et];
+    var strongChips='',weakChips='';
+    ed.counteredBy.forEach(function(u){strongChips+='<span class="counter-chip strong">✓ '+(unitCounterNames[u]||u)+'</span>';});
+    ed.counters.forEach(function(u){weakChips+='<span class="counter-chip weak">✗ '+(unitCounterNames[u]||u)+'</span>';});
+    var stageTag=ed.stage===2?'<span style="font-size:0.6rem;color:#c078f0;margin-left:6px;font-family:Cinzel,serif;">STAGE 2</span>':'';
+    var card=document.createElement('div'); card.className='bestiary-card';
+    card.innerHTML=
+      '<div class="bestiary-emoji">'+ed.emoji+'</div>'+
+      '<div class="bestiary-info">'+
+        '<div class="bestiary-name">'+ed.name+stageTag+'</div>'+
+        '<div class="bestiary-desc">'+ed.desc+'</div>'+
+        '<div class="bestiary-counters">'+strongChips+weakChips+'</div>'+
+      '</div>';
+    list.appendChild(card);
+  }
+}
+function closeBestiary() {
+  document.getElementById('bestiary-panel').style.display='none';
+  document.querySelectorAll('.world-tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-stages').classList.add('active');
+}
+
+// ── DECK SELECT ───────────────────────────────────────────────────
+function openDeckSelect(stageId) {
+  currentStageId=stageId;
+  document.getElementById('world-screen').style.display='none';
+  document.getElementById('deck-screen').style.display='flex';
+  var sg=STAGES.find(function(s){return s.id===stageId;});
+  document.getElementById('deck-stage-label').textContent='Stage '+stageId+' · '+sg.name;
+  initDeckBuilder();
+}
+
+function updateDeckPreviewBox(data) {
+  var box=document.getElementById('deck-preview-box');
+  if(!data){box.innerHTML='<em style="color:rgba(255,255,255,0.3);font-size:0.78rem;">Toca un guardián para ver sus poderes</em>';return;}
+  var rc=rarityColors[data.rarity];
+  box.innerHTML=
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">'+
+      '<span style="font-size:1.4rem;">'+data.emoji+'</span>'+
+      '<div>'+
+        '<div style="font-family:Cinzel,serif;font-size:0.8rem;color:#f0d078;">'+data.name+'</div>'+
+        '<div style="font-size:0.6rem;color:'+rc+';letter-spacing:1px;text-transform:uppercase;">'+data.rarity+' · '+(classNames[data.cls]||data.cls)+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div style="font-size:0.72rem;color:rgba(255,255,255,0.6);line-height:1.4;margin-bottom:3px;">'+data.desc+'</div>'+
+    '<div style="font-size:0.65rem;color:'+rc+';border-left:2px solid '+rc+';padding-left:5px;margin-bottom:2px;">✦ '+data.ability+'</div>'+
+    '<div style="font-size:0.62rem;color:#c9a84c;">'+data.lvl4+'</div>';
+}
+
+function updateDeckSynergyPreview() {
+  var box=document.getElementById('deck-synergy-preview');
+  if(selectedDeck.length===0){box.innerHTML='<em style="color:rgba(255,255,255,0.2);font-size:0.7rem;">Las sinergias se mostrarán aquí</em>';return;}
+  var res=computeSynergiesFromDeck(selectedDeck);
+  var html='';
+  var hasAny=false;
+  for(var cls in SYNERGIES){
+    var n=res.counts[cls]; if(n===0)continue;
+    var activeT=null;
+    SYNERGIES[cls].thresholds.forEach(function(t){if(n>=t.n)activeT=t;});
+    hasAny=true;
+    html+='<span class="syn-badge '+cls+(activeT?' active':'')+'" style="font-size:0.55rem;padding:2px 5px;">'+
+      SYNERGIES[cls].icon+' '+n+(activeT?' ✓ '+activeT.desc:'')+'</span>';
+  }
+  if(!hasAny)html='<em style="color:rgba(255,255,255,0.2);font-size:0.7rem;">Sin sinergias activas</em>';
+  box.innerHTML=html;
+}
+
+function initDeckBuilder() {
+  var container=document.getElementById('deck-grid');
+  container.innerHTML='';selectedDeck=[];
+  var clsIcons={archer:'🏹',warrior:'⚔️',mage:'🔮',support:'💚'};
+  // In dev mode: all unlocked. Eagle unlocked if stage1 cleared.
+  var devMode=true; // DEVELOPER MODE: all cards available
+  Object.keys(ALL_UNITS).forEach(function(key){
+    var data=ALL_UNITS[key];
+    var isLocked=data.locked&&!devMode;
+    var card=document.createElement('div');
+    card.className='deck-card'+(isLocked?' locked-card':'');
+    card.dataset.rarity=data.rarity;
+    card.innerHTML='<span style="font-size:22px;">'+data.emoji+'</span>'+
+      '<span class="card-rarity" style="color:'+rarityColors[data.rarity]+'">'+data.rarity+'</span>'+
+      '<span class="card-class">'+(clsIcons[data.cls]||'')+'</span>';
+    if(!isLocked){
+      card.addEventListener('mouseenter',function(){updateDeckPreviewBox(data);});
+      card.addEventListener('mouseleave',function(){updateDeckPreviewBox(null);});
+      card.addEventListener('touchstart',function(){updateDeckPreviewBox(data);},{passive:true});
+      card.addEventListener('click',function(){
+        updateDeckPreviewBox(data);
+        if(card.classList.contains('selected')){
+          card.classList.remove('selected');
+          selectedDeck=selectedDeck.filter(function(k){return k!==key;});
+        } else if(selectedDeck.length<4){
+          card.classList.add('selected');
+          selectedDeck.push(key);
+        }
+        updateDeckStatus();updateDeckSynergyPreview();
+      });
+    }
+    container.appendChild(card);
+  });
+  updateDeckStatus();updateDeckSynergyPreview();
+}
+function updateDeckStatus(){
+  document.getElementById('deck-status').textContent=selectedDeck.length+' / 4 Seleccionados';
+  document.getElementById('btn-start-game').disabled=selectedDeck.length!==4;
+}
+
+// ── START GAME ────────────────────────────────────────────────────
+function startGame() {
+  if(selectedDeck.length!==4)return;
+  document.getElementById('deck-screen').style.display='none';
+  document.getElementById('end-screen').style.display='none';
+  document.getElementById('world-screen').style.display='none';
+  try{var AC=window.AudioContext||window.webkitAudioContext;if(AC&&!audioCtx)audioCtx=new AC();}catch(e){}
+  units.forEach(function(x){if(x.el)x.el.remove();}); units.length=0;
+  blockers.forEach(function(x){if(x.el)x.el.remove();}); blockers.length=0;
+  enemies.forEach(function(x){if(x.el)x.el.remove();}); enemies.length=0;
+  projectiles.forEach(function(x){if(x.el)x.el.remove();}); projectiles.length=0;
+  state.energy=60;state.pondHp=100;state.summonCost=15;state.unlockedCount=COLS*ROWS;
+  state.scoreSaved=false;state.isRunning=true;state.isPaused=false;
+  state.autoMode=false;state.autoTimer=0;state.timeElapsed=0;state.wave=1;
+  state.spawnTimer=0;state.lastFrame=performance.now();
+  state.boss5Spawned=false;state.boss10Spawned=false;state.victoryPending=false;
+  state.stageId=currentStageId;
+  furyMeter=0;furyActive=false;gameSpeed=1;speedIdx=0;
+  document.getElementById('speed-btn').textContent='1×';
+  document.getElementById('auto-btn').className='ctrl-btn';
+  document.getElementById('pause-btn').textContent='⏸';
+  document.getElementById('pond-fury-fill').style.width='0%';
+  document.getElementById('fury-overlay').classList.remove('active');
+  var sg=STAGES.find(function(s){return s.id===currentStageId;});
+  if(sg)gameArea.style.background=sg.bg;
+  initGrid();drawLanes();updateGridVisuals();updateUI();computeSynergies();
+  requestAnimationFrame(gameLoop);
+}
+function restartSameDeck(){document.getElementById('end-screen').style.display='none';startGame();}
+
+// ── GRID ──────────────────────────────────────────────────────────
+function initGrid() {
+  gridEl.innerHTML='';
+  for(var i=0;i<COLS*ROWS;i++){var c=document.createElement('div');c.className='grid-cell';gridEl.appendChild(c);}
+  resizeGrid();
+}
+function resizeGrid() {
+  var gr=gameArea.getBoundingClientRect();
+  var size=gr.width/COLS;
+  if((size*ROWS)+80>gr.height*0.82)size=(gr.height*0.82-80)/ROWS;
+  cellW=size;cellH=size;
+  var gw=cellW*COLS;
+  bridgeContainer.style.width=gw+'px';
+  bridgeContainer.style.left=((gr.width-gw)/2)+'px';
+  bridgeContainer.style.height=(ROWS*cellH)+'px';
+  bridgeContainer.style.bottom='85px';
+  gridEl.style.gridTemplateColumns='repeat('+COLS+','+cellW+'px)';
+  gridEl.style.gridTemplateRows='repeat('+ROWS+','+cellH+'px)';
+  units.forEach(function(u){u.el.style.fontSize=(cellW*0.6)+'px';updateEntityPos(u);});
+}
+function drawLanes() {
+  document.querySelectorAll('.lane-divider').forEach(function(e){e.remove();});
+  for(var i=1;i<COLS;i++){var d=document.createElement('div');d.className='lane-divider';d.style.left=((100/COLS)*i)+'%';gameArea.appendChild(d);}
+}
+function updateGridVisuals() {
+  var cells=gridEl.children,total=COLS*ROWS;
+  for(var i=0;i<total;i++){
+    if(i>=total-state.unlockedCount)cells[i].classList.add('unlocked');
+    else cells[i].classList.remove('unlocked');
+  }
+}
+function getPosFromColRow(col,row) {
+  var br=bridgeContainer.getBoundingClientRect(),gr=gameArea.getBoundingClientRect();
+  return{x:br.left-gr.left+col*cellW+cellW/2,y:br.top-gr.top+row*cellH+cellH/2};
+}
+function updateEntityPos(u){var p=getPosFromColRow(u.col,u.row);u.x=p.x;u.y=p.y;u.el.style.left=p.x+'px';u.el.style.top=p.y+'px';}
+function getUnitAt(col,row){for(var i=0;i<units.length;i++){if(units[i].col===col&&units[i].row===row)return units[i];}return null;}
+
+// ── SUMMON ────────────────────────────────────────────────────────
+function summonUnit() {
+  if(state.energy<state.summonCost||selectedDeck.length===0)return;
+  var empty=[];
+  var total=COLS*ROWS;
+  for(var row=0;row<ROWS;row++){
+    for(var col=0;col<COLS;col++){
+      var idx=row*COLS+col;
+      if(idx>=total-state.unlockedCount&&!getUnitAt(col,row))empty.push({col:col,row:row});
+    }
+  }
+  if(empty.length===0)return;
+  state.energy-=state.summonCost;
+  var key=selectedDeck[Math.floor(Math.random()*selectedDeck.length)];
+  var data=ALL_UNITS[key];
+  var cell=empty[Math.floor(Math.random()*empty.length)];
+  createUnit(data,1,cell.col,cell.row);
+  computeSynergies();updateUI();playChime('normal');
+}
+
+// ── CREATE UNIT ───────────────────────────────────────────────────
+function createUnit(data,level,col,row) {
+  var el=document.createElement('div');
+  el.className='unit entity';el.dataset.level=level;
+  el.style.fontSize=(cellW*0.6)+'px';
+  var emojiSpan=document.createElement('span');emojiSpan.textContent=data.emoji;
+  var ring=document.createElement('div');ring.className='rarity-ring '+data.rarity;
+  var dot=document.createElement('div');dot.className='class-dot '+(data.cls||'');
+  var lvlInd=document.createElement('div');lvlInd.className='level-indicator';lvlInd.textContent='⭐'.repeat(level);
+  el.appendChild(ring);el.appendChild(dot);el.appendChild(emojiSpan);el.appendChild(lvlInd);
+  gameArea.appendChild(el);
+  var unit={el:el,emojiSpan:emojiSpan,ring:ring,dot:dot,lvlInd:lvlInd,baseData:data,level:level,col:col,row:row,x:0,y:0,timer:data.cooldown,isDragging:false};
+  updateEntityPos(unit);
+
+  function showInfo() {
+    var rc=rarityColors[data.rarity];
+    document.getElementById('info-rarity').textContent=data.rarity.toUpperCase();
+    document.getElementById('info-rarity').style.color=rc;
+    document.getElementById('info-title').textContent=data.name+' ★'+unit.level;
+    document.getElementById('info-class').textContent=classNames[data.cls]||data.cls;
+    document.getElementById('info-desc').textContent=data.desc;
+    document.getElementById('info-lvl4').innerHTML=
+      '<span style="color:'+rc+';display:block;font-size:0.65rem;border-left:2px solid '+rc+';padding-left:4px;margin-bottom:2px;">✦ '+data.ability+'</span>'+
+      '<span style="font-size:0.62rem;">'+data.lvl4+'</span>';
+    var counterHtml='';
+    if(data.counter&&data.counter.length){
+      counterHtml+='<span style="color:#81c784;">✓ Fuerte vs: ';
+      counterHtml+=data.counter.map(function(t){return ENEMY_DEFS[t]?ENEMY_DEFS[t].name:t;}).join(', ');
+      counterHtml+='</span>';
+    }
+    document.getElementById('info-counter').innerHTML=counterHtml;
+    infoPanel.style.opacity='1';
+  }
+
+  var offX=0,offY=0;
+  el.addEventListener('pointerdown',function(e){
+    if(state.autoMode||state.isPaused||state.pondHp<=0)return;
+    unit.isDragging=true;el.setPointerCapture(e.pointerId);
+    var r=el.getBoundingClientRect();offX=e.clientX-(r.left+r.width/2);offY=e.clientY-(r.top+r.height/2);
+    showInfo();
+    if(data.rangeCells>0){var rp=getSynRange(unit)*cellW;rangeIndicator.style.cssText='width:'+(rp*2)+'px;height:'+(rp*2)+'px;left:'+unit.x+'px;top:'+unit.y+'px;display:block;';}
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!unit.isDragging)return;
+    var gr=gameArea.getBoundingClientRect();
+    var nx=e.clientX-gr.left-offX,ny=e.clientY-gr.top-offY;
+    el.style.left=nx+'px';el.style.top=ny+'px';
+    rangeIndicator.style.left=nx+'px';rangeIndicator.style.top=ny+'px';
+  });
+  el.addEventListener('pointerup',function(e){
+    if(!unit.isDragging)return;
+    unit.isDragging=false;el.releasePointerCapture(e.pointerId);
+    rangeIndicator.style.display='none';infoPanel.style.opacity='0';
+    var br=bridgeContainer.getBoundingClientRect(),gr=gameArea.getBoundingClientRect();
+    var dx=e.clientX-gr.left-(br.left-gr.left),dy=e.clientY-br.top;
+    var nc=Math.floor(dx/cellW),nr=Math.floor(dy/cellH);
+    var ci=nr*COLS+nc,total=COLS*ROWS;
+    if(nc>=0&&nc<COLS&&nr>=0&&nr<ROWS&&ci>=total-state.unlockedCount){
+      var tgt=getUnitAt(nc,nr);
+      if(tgt&&tgt!==unit){
+        if(tgt.baseData.type===unit.baseData.type&&tgt.level===unit.level&&unit.level<4){
+          tgt.level++;
+          tgt.el.dataset.level=tgt.level;tgt.lvlInd.textContent='⭐'.repeat(tgt.level);
+          tgt.el.style.transform='translate(-50%,-50%) scale(1.5)';
+          setTimeout(function(){if(tgt.el)tgt.el.style.transform='';},200);
+          spawnText(tgt.x,tgt.y-20,'✨ ¡Fusión!','#81c784');playChime('merge');
+          unit.el.remove();units.splice(units.indexOf(unit),1);
+          state.unlockedCount=Math.min(COLS*ROWS,state.unlockedCount+1);
+          updateGridVisuals();computeSynergies();
+        } else {
+          var oc=unit.col,or=unit.row;
+          unit.col=nc;unit.row=nr;tgt.col=oc;tgt.row=or;updateEntityPos(tgt);
+        }
+      } else {unit.col=nc;unit.row=nr;}
+    }
+    updateEntityPos(unit);
+  });
+  units.push(unit);
+}
+
+// ── HP BAR ────────────────────────────────────────────────────────
+function createHealthBar(entityEl){
+  var c=document.createElement('div');c.className='hp-bar-container';
+  var b=document.createElement('div');b.className='hp-bar';
+  c.appendChild(b);entityEl.appendChild(c);return b;
+}
+
+// ── SPAWN ENEMIES ─────────────────────────────────────────────────
+function getEnemyPool() {
+  var sg=STAGES.find(function(s){return s.id===state.stageId;});
+  if(!sg)return['basic'];
+  if(state.stageId===1)return['basic'];
+  // Stage 2: mix based on wave
+  var pool=['basic'];
+  if(state.wave>=2)pool.push('eye');
+  if(state.wave>=4)pool.push('golem');
+  if(state.wave>=3)pool.push('swarm');
+  return pool;
+}
+
+function spawnEnemy() {
+  var pool=getEnemyPool();
+  var et=pool[Math.floor(Math.random()*pool.length)];
+  var def=ENEMY_DEFS[et];
+  var br=bridgeContainer.getBoundingClientRect(),gr=gameArea.getBoundingClientRect();
+
+  if(et==='swarm'){
+    // spawn 3 at once in nearby lanes
+    var lane=Math.floor(Math.random()*(COLS-2))+1;
+    for(var sw=0;sw<3;sw++) spawnSingleEnemy(et,def,lane+sw-1,br,gr);
+    return;
+  }
+  var lane=Math.floor(Math.random()*COLS);
+  spawnSingleEnemy(et,def,lane,br,gr);
+}
+
+function spawnSingleEnemy(et,def,lane,br,gr) {
+  lane=Math.max(0,Math.min(COLS-1,lane));
+  var el=document.createElement('div');el.className='entity enemy';
+  var em=document.createElement('span');em.textContent=def.emoji;el.appendChild(em);
+  var hpBar=createHealthBar(el);
+  var x=br.left-gr.left+lane*cellW+cellW/2,y=-30;
+  el.style.left=x+'px';el.style.top=y+'px';
+  gameArea.appendChild(el);
+  var baseHp=30+state.wave*15;
+  var hp=Math.floor(baseHp*def.hp*(0.8+Math.random()*0.4));
+  var speed=(20+state.wave*1.5)*def.speed;
+  if(def.size==='heavy')el.querySelector('span').style.fontSize='32px';
+  enemies.push({id:Math.random().toString(),el:el,hpBar:hpBar,col:lane,x:x,y:y,hp:hp,maxHp:hp,baseSpeed:speed,speedMultiplier:1,slowTimer:0,attackTimer:0,isBoss:false,isFinalBoss:false,burnTimer:0,staticCharge:false,enemyType:et,marked:false,markTimer:0});
+}
+
+function spawnBoss(isFinalBoss) {
+  var sg=STAGES.find(function(s){return s.id===state.stageId;});
+  var bossEmoji=isFinalBoss?(sg?sg.finalBoss:'☠️'):(sg?sg.boss:'👹');
+  var br=bridgeContainer.getBoundingClientRect(),gr=gameArea.getBoundingClientRect();
+  var lane=Math.floor(COLS/2);
+  var el=document.createElement('div');el.className='entity enemy boss';
+  var em=document.createElement('span');em.textContent=bossEmoji;el.appendChild(em);
+  var hpBar=createHealthBar(el);
+  var x=br.left-gr.left+lane*cellW+cellW/2,y=-40;
+  el.style.left=x+'px';el.style.top=y+'px';
+  gameArea.appendChild(el);
+  var hp=Math.floor(600*state.wave*(isFinalBoss?2.5:1));
+  enemies.push({id:Math.random().toString(),el:el,hpBar:hpBar,col:lane,x:x,y:y,hp:hp,maxHp:hp,baseSpeed:8+state.wave*0.2,speedMultiplier:1,slowTimer:0,attackTimer:0,isBoss:true,isFinalBoss:isFinalBoss,burnTimer:0,staticCharge:false,enemyType:'boss',marked:false,markTimer:0});
+  gameArea.style.background='linear-gradient(180deg,'+(isFinalBoss?'#2a0a0a':'#1f1010')+' 0%,#08080f 100%)';
+  spawnText(gameArea.clientWidth/2,150,isFinalBoss?'⚠ JEFE FINAL ⚠':'👹 JEFE de Oleada','#ef4444');
+  addFury(20);playChime('hit');
+}
+
+// ── BLOCKER ───────────────────────────────────────────────────────
+function createBlocker(col,spawnY,hp,dmg,emoji,isAncestral,ownerUnit) {
+  // Check max 3 blockers per bear unit
+  if(ownerUnit){
+    var count=0;
+    for(var bi=0;bi<blockers.length;bi++){if(blockers[bi].owner===ownerUnit)count++;}
+    if(count>=3)return;
+  }
+  var el=document.createElement('div');el.className='entity blocker';
+  var em=document.createElement('span');em.textContent=emoji;el.appendChild(em);
+  var hpBar=createHealthBar(el);
+  var br=bridgeContainer.getBoundingClientRect(),gr=gameArea.getBoundingClientRect();
+  var x=br.left-gr.left+col*cellW+cellW/2;
+  el.style.left=x+'px';el.style.top=spawnY+'px';
+  gameArea.appendChild(el);
+  blockers.push({id:Math.random().toString(),el:el,hpBar:hpBar,col:col,x:x,y:spawnY,hp:hp,maxHp:hp,dmg:dmg,speed:60,isAncestral:isAncestral||false,attackTimer:0,owner:ownerUnit||null,homeX:x,homeY:spawnY});
+}
+
+// ── FIRE PROJECTILE ───────────────────────────────────────────────
+function doFireProjectile(unit,target) {
+  if(!unit||!unit.baseData||!unit.el)return;
+  var data=unit.baseData;
+  var synDmg=getSynDmgMult(unit);
+  var lvlMult=unit.level===4?4:unit.level===3?2.5:1;
+  var counterMult=getCounterMult(data.type,target.enemyType||'basic');
+  var baseDmg=data.dmg*lvlMult*synDmg*counterMult;
+  var angle=Math.atan2(target.y-unit.y,target.x-unit.x);
+  // Show counter indicator
+  if(counterMult>1)spawnText(unit.x,unit.y-15,'⚡COUNTER','#fbbf24');
+
+  function spawnProj(ang,dmgOverride) {
+    var el=document.createElement('div');el.className='entity projectile';
+    el.textContent=data.proj;
+    el.style.left=unit.x+'px';el.style.top=unit.y+'px';
+    if(data.role==='heavy')el.style.fontSize=unit.level===4?'48px':unit.level===3?'38px':'28px';
+    if(data.role==='splash')el.style.fontSize=unit.level===4?'28px':'18px';
+    gameArea.appendChild(el);
+    projectiles.push({el:el,x:unit.x,y:unit.y,role:data.role,dmg:dmgOverride!==undefined?dmgOverride:baseDmg,speed:data.speed,level:unit.level,isPiercing:(data.type==='owl'&&unit.level>=4),target:target,angle:ang,hitIds:{},unitType:data.type,unitRarity:data.rarity});
+  }
+
+  // EAGLE: mark target
+  if(data.type==='eagle') {
+    var markCount=unit.level>=4?3:1;
+    var marked=0;
+    for(var mi=0;mi<enemies.length&&marked<markCount;mi++){
+      if(!enemies[mi].marked){enemies[mi].marked=true;enemies[mi].markTimer=5;enemies[mi].el.style.filter='drop-shadow(0 0 8px red)';marked++;}
+    }
+    spawnProj(angle);
+    unit.el.style.transform='translate(-50%,-50%) scale(0.9)';
+    setTimeout(function(){if(unit.el)unit.el.style.transform='';},100);
+    return;
+  }
+
+  // DRAGON legendary: Aliento each 5th shot
+  if(data.type==='dragon'&&data.rarity==='legendary'){
+    unit._shotCount=(unit._shotCount||0)+1;
+    if(unit._shotCount%5===0){
+      // Visual: dragon breath column effect
+      var breathEl=document.createElement('div');
+      breathEl.style.cssText='position:absolute;left:'+unit.x+'px;top:'+(unit.y-20)+'px;font-size:48px;transform:translate(-50%,-50%);z-index:90;animation:floatUp 0.8s ease-out forwards;';
+      breathEl.textContent='🔥';
+      gameArea.appendChild(breathEl);
+      setTimeout(function(){if(breathEl.parentNode)breathEl.remove();},800);
+      for(var di=0;di<enemies.length;di++){
+        if(Math.abs(enemies[di].x-unit.x)<cellW*1.5){
+          enemies[di].hp-=baseDmg*1.5;
+          enemies[di].burnTimer=(enemies[di].burnTimer||0)+4;
+          spawnText(enemies[di].x,enemies[di].y,'🔥','#f97316');
+        }
+      }
+      spawnText(unit.x,unit.y-30,'🐉 Aliento!','#f97316');
+      unit.el.style.transform='translate(-50%,-50%) scale(1.3)';
+      setTimeout(function(){if(unit.el)unit.el.style.transform='';},300);
+      return;
+    }
+  }
+  // OWL
+  if(data.type==='owl'){
+    if(data.rarity==='legendary'){spawnProj(angle-0.25);spawnProj(angle);spawnProj(angle+0.25);}
+    else if(data.rarity==='epic'){unit._shotCount=(unit._shotCount||0)+1;var isCrit=unit._shotCount%3===0;spawnProj(angle,isCrit?baseDmg*2.5:baseDmg);if(isCrit)spawnText(unit.x,unit.y-15,'CRÍTICO!','#fbbf24');}
+    else if(data.rarity==='rare'){spawnProj(angle-0.12);spawnProj(angle+0.12);}
+    else spawnProj(angle);
+    unit.el.style.transform='translate(-50%,-50%) scale(0.9)';setTimeout(function(){if(unit.el)unit.el.style.transform='';},100);return;
+  }
+  // TURTLE push column every 3rd
+  if(data.type==='turtle'&&(data.rarity==='epic'||data.rarity==='legendary')){
+    unit._shotCount=(unit._shotCount||0)+1;
+    if(unit._shotCount%3===0){
+      for(var ti=0;ti<enemies.length;ti++){if(Math.abs(enemies[ti].x-target.x)<cellW*1.2&&!enemies[ti].isBoss){enemies[ti].y-=45;enemies[ti].el.style.top=enemies[ti].y+'px';}}
+      spawnText(target.x,target.y,'↑ Empuje!','#4fc3f7');
+    }
+  }
+  spawnProj(angle);
+  unit.el.style.transform='translate(-50%,-50%) scale(0.9)';
+  setTimeout(function(){if(unit.el)unit.el.style.transform='';},100);
+}
+
+// ── GAME LOOP ─────────────────────────────────────────────────────
+function gameLoop(currentTime) {
+  if(!state.isRunning){requestAnimationFrame(gameLoop);return;}
+  if(state.isPaused){state.lastFrame=currentTime;requestAnimationFrame(gameLoop);return;}
+  if(state.pondHp<=0){requestAnimationFrame(gameLoop);return;}
+
+  var dt=((currentTime-state.lastFrame)/1000)*gameSpeed;
+  if(dt>0.15)dt=0.016*gameSpeed;
+  state.lastFrame=currentTime;
+  state.timeElapsed+=dt/gameSpeed;
+
+  // Wave
+  var newWave=Math.min(state.maxWave,1+Math.floor(state.timeElapsed/15));
+  if(newWave>state.wave){state.wave=newWave;updateUI();spawnText(gameArea.clientWidth/2,100,'Oleada '+state.wave,'#ce93d8');}
+  if(state.wave>=5&&!state.boss5Spawned&&!enemies.some(function(e){return e.isBoss;})){state.boss5Spawned=true;spawnBoss(false);}
+  if(state.wave>=10&&!state.boss10Spawned&&!enemies.some(function(e){return e.isBoss;})){state.boss10Spawned=true;spawnBoss(true);}
+  state.spawnTimer-=dt;
+  if(state.spawnTimer<=0&&state.wave<10){spawnEnemy();state.spawnTimer=Math.max(0.5,2.5-state.wave*0.15);}
+  if(state.wave>=10&&state.boss10Spawned&&!enemies.some(function(e){return e.isBoss;})&&enemies.length===0){
+    if(!state.victoryPending){state.victoryPending=true;setTimeout(function(){showEndScreen(true);},2000);}
+  }
+
+  // AUTO MERGE
+  if(state.autoMode){
+    state.autoTimer-=dt;
+    if(state.autoTimer<=0){
+      state.autoTimer=1.0;var merged=false;
+      for(var ai=0;ai<units.length&&!merged;ai++){
+        for(var aj=ai+1;aj<units.length&&!merged;aj++){
+          var u1=units[ai],u2=units[aj];
+          if(u1.baseData.type===u2.baseData.type&&u1.level===u2.level&&u1.level<4){
+            u1.level++;u1.el.dataset.level=u1.level;u1.lvlInd.textContent='⭐'.repeat(u1.level);
+            u1.el.style.transform='translate(-50%,-50%) scale(1.5)';
+            setTimeout(function(){if(u1.el)u1.el.style.transform='';},200);
+            spawnText(u1.x,u1.y-20,'✨ Auto','#81c784');playChime('merge');
+            u2.el.remove();units.splice(aj,1);
+            state.unlockedCount=Math.min(COLS*ROWS,state.unlockedCount+1);
+            updateGridVisuals();computeSynergies();merged=true;
+          }
+        }
+      }
+    }
+  }
+
+  // UNITS
+  for(var ui=0;ui<units.length;ui++){
+    var u=units[ui];
+    if(u.isDragging)continue;
+    // Frog epic aura
+    if(u.baseData.role==='slow'&&(u.baseData.rarity==='epic'||u.baseData.rarity==='legendary')){
+      if(u._auraTimer===undefined)u._auraTimer=0;
+      u._auraTimer-=dt;
+      if(u._auraTimer<=0){
+        u._auraTimer=2.0;var rp=getSynRange(u)*cellW;
+        for(var aei=0;aei<enemies.length;aei++){if(Math.hypot(enemies[aei].x-u.x,enemies[aei].y-u.y)<rp){enemies[aei].speedMultiplier=Math.min(enemies[aei].speedMultiplier,0.55);enemies[aei].slowTimer=Math.max(enemies[aei].slowTimer,1.5);}}
+      }
+    }
+    u.timer-=dt;
+    if(u.timer>0)continue;
+    var udata=u.baseData,rareMult=RARITY_MULT[udata.rarity];
+    if(udata.role==='econ'){
+      var amt=u.level===4?8:u.level===3?4:u.level===2?2:1;
+      if(activeSynergies['support_econ'])amt+=2;
+      if(udata.rarity==='rare')amt+=1;
+      if(udata.rarity==='epic'||udata.rarity==='legendary'){amt+=2;state.pondHp=Math.min(100,state.pondHp+0.5);updateUI();}
+      if(udata.rarity==='legendary')addFury(3);
+      state.energy+=amt;updateUI();spawnText(u.x,u.y-20,'+'+amt+'💧');
+      u.timer=udata.cooldown;
+    } else if(udata.role==='slow'){
+      var slRp=getSynRange(u)*cellW;var slTgt=null,slMin=slRp;
+      for(var sli=0;sli<enemies.length;sli++){var sld=Math.hypot(enemies[sli].x-u.x,enemies[sli].y-u.y);if(sld<slMin){slMin=sld;slTgt=enemies[sli];}}
+      if(slTgt){
+        if(udata.rarity==='legendary'&&Math.random()<0.3){slTgt.speedMultiplier=0;slTgt.slowTimer=2.5;spawnText(slTgt.x,slTgt.y,'❄️','#81d4fa');}
+        doFireProjectile(u,slTgt);u.timer=udata.cooldown/(1+(u.level-1)*0.2);
+      }
+    } else if(udata.role==='summoner'){
+      var sumRp=getSynRange(u)*cellW;var nearE=null;
+      for(var smi=0;smi<enemies.length;smi++){if(Math.hypot(enemies[smi].x-u.x,enemies[smi].y-u.y)<sumRp*1.8){nearE=enemies[smi];break;}}
+      if(!nearE){u.timer=0.5;continue;}
+      u.timer=udata.cooldown/(u.level>=3?1.5:1);
+      var bhp=(activeSynergies['warrior_hp']?1.5:1)*(u.level===4?800:u.level===3?350:u.level*50)*rareMult;
+      var bdmg=(u.level===4?40:u.level===3?20:8)*rareMult;
+      var bemoji=u.level===4?'🐻‍❄️':u.level===3?'🐼':'🐾';
+      var bcount=(udata.rarity==='legendary')?2:1;
+      for(var bci=0;bci<bcount;bci++)createBlocker(u.col,u.y-40,bhp,bdmg,bemoji,u.level>=3,u);
+    } else {
+      // dps, heavy, splash, burn, chain, mark
+      var atkRp=getSynRange(u)*cellW;var atkTgt=null,atkMin=atkRp;
+      for(var ati=0;ati<enemies.length;ati++){var atd=Math.hypot(enemies[ati].x-u.x,enemies[ati].y-u.y);if(atd<atkMin){atkMin=atd;atkTgt=enemies[ati];}}
+      // Eagle prefers marked enemies
+      if(udata.role==='mark'&&udata.type!=='eagle'){
+        var mTgt=null;
+        for(var mki=0;mki<enemies.length;mki++){if(enemies[mki].marked&&Math.hypot(enemies[mki].x-u.x,enemies[mki].y-u.y)<atkRp){mTgt=enemies[mki];break;}}
+        if(mTgt)atkTgt=mTgt;
+      }
+      if(atkTgt){doFireProjectile(u,atkTgt);u.timer=udata.cooldown/(1+(u.level-1)*0.2);}
+    }
+  }
+
+  // PROJECTILES
+  for(var pi=projectiles.length-1;pi>=0;pi--){
+    var p=projectiles[pi];
+    if(!p.isPiercing&&p.target&&enemies.indexOf(p.target)>=0)
+      p.angle=Math.atan2(p.target.y-p.y,p.target.x-p.x);
+    p.x+=Math.cos(p.angle)*p.speed*dt;p.y+=Math.sin(p.angle)*p.speed*dt;
+    p.el.style.left=p.x+'px';p.el.style.top=p.y+'px';
+
+    var hit=null;
+    for(var hi=0;hi<enemies.length;hi++){if(Math.hypot(enemies[hi].x-p.x,enemies[hi].y-p.y)<(enemies[hi].isBoss?50:25)){hit=enemies[hi];break;}}
+
+    if(hit){
+      // Apply mark bonus
+      var markBonus=hit.marked?1.3:1;
+      if(p.role==='dps'||p.role==='burn'||p.role==='mark'){
+        if(!p.isPiercing||!p.hitIds[hit.id]){
+          var dmg=p.dmg*markBonus;
+          if(hit.staticCharge){dmg*=1.5;hit.staticCharge=false;spawnText(hit.x,hit.y-10,'⚡+50%','#facc15');}
+          hit.hp-=dmg;playChime('hit');
+          hit.el.style.filter='drop-shadow(0 0 10px red)';
+          setTimeout((function(h,b){return function(){if(h.el)h.el.style.filter=b?'drop-shadow(0 0 15px #ff1744)':'drop-shadow(0 2px 4px black)';};})(hit,hit.isBoss),100);
+          if(p.isPiercing)p.hitIds[hit.id]=true;
+          else{p.el.remove();projectiles.splice(pi,1);continue;}
+          if(p.role==='burn')hit.burnTimer=(hit.burnTimer||0)+3;
+        }
+      } else if(p.role==='heavy'){
+        hit.hp-=p.dmg*markBonus;playChime('hit');
+        if(p.level>=3){var sr=p.level===4?cellW*2.5:cellW*1.5;for(var hi2=0;hi2<enemies.length;hi2++){if(Math.hypot(enemies[hi2].x-hit.x,enemies[hi2].y-hit.y)<sr)enemies[hi2].hp-=p.dmg*0.5;}}
+        p.el.remove();projectiles.splice(pi,1);continue;
+      } else if(p.role==='splash'){
+        playChime('hit');
+        var splashR=p.level===4?cellW*3.5:p.level===3?cellW*2.5:cellW*1.5;
+        var exp=document.createElement('div');exp.textContent='💥';
+        exp.style.cssText='position:absolute;left:'+hit.x+'px;top:'+hit.y+'px;font-size:'+(p.level===4?'70px':'45px')+';transform:translate(-50%,-50%);z-index:70;';
+        gameArea.appendChild(exp);setTimeout(function(){exp.remove();},200);
+        for(var si2=0;si2<enemies.length;si2++){
+          if(Math.hypot(enemies[si2].x-hit.x,enemies[si2].y-hit.y)<splashR){
+            enemies[si2].hp-=p.dmg*(enemies[si2].marked?1.3:1);
+            if(p.level===4&&!enemies[si2].isBoss)enemies[si2].y-=40;
+          }
+        }
+        if(p.unitRarity==='legendary'){
+          for(var si3=0;si3<enemies.length;si3++){if(Math.hypot(enemies[si3].x-hit.x,enemies[si3].y-hit.y)<splashR*1.2){enemies[si3].speedMultiplier=0.4;enemies[si3].slowTimer=2.0;}}
+          spawnText(hit.x,hit.y-20,'💨 Humo','#94a3b8');
+        }
+        p.el.remove();projectiles.splice(pi,1);continue;
+      } else if(p.role==='slow'){
+        hit.speedMultiplier=activeSynergies['mage_effect']?0.3:0.5;
+        hit.slowTimer=p.level>=4?4:p.level>=3?2.5:1.5;
+        hit.el.style.filter='drop-shadow(0 0 5px #81d4fa)';
+        hit.hp-=p.dmg*0.5*markBonus;playChime('hit');
+        p.el.remove();projectiles.splice(pi,1);continue;
+      } else if(p.role==='chain'){
+        var chainHits=p.level>=4?5:p.level>=3?3:2;
+        var hitSet={};hitSet[hit.id]=true;hit.hp-=p.dmg*markBonus;playChime('hit');
+        var cur=hit;
+        for(var ci=0;ci<chainHits-1;ci++){
+          var next=null,minChD=cellW*4;
+          for(var chi=0;chi<enemies.length;chi++){if(!hitSet[enemies[chi].id]){var chd=Math.hypot(enemies[chi].x-cur.x,enemies[chi].y-cur.y);if(chd<minChD){minChD=chd;next=enemies[chi];}}}
+          if(next){next.hp-=p.dmg;if(p.level>=4){next.speedMultiplier=0.1;next.slowTimer=1.5;}hitSet[next.id]=true;cur=next;}else break;
+        }
+        if(p.unitRarity==='legendary'){hit.staticCharge=true;hit.el.style.filter='drop-shadow(0 0 8px #facc15)';}
+        p.el.remove();projectiles.splice(pi,1);continue;
+      }
+    } else if(p.x<-50||p.x>gameArea.clientWidth+50||p.y<-50||p.y>gameArea.clientHeight){
+      p.el.remove();projectiles.splice(pi,1);
+    }
+  }
+
+  // BLOCKERS
+  for(var bli=blockers.length-1;bli>=0;bli--){
+    var b=blockers[bli];
+    b.hp-=3*dt;
+    if(b.hpBar)b.hpBar.style.width=Math.max(0,(b.hp/b.maxHp)*100)+'%';
+    if(activeSynergies['warrior_regen'])b.hp=Math.min(b.maxHp,b.hp+5*dt);
+    for(var blj=0;blj<blockers.length;blj++){if(bli!==blj){var dist=Math.hypot(blockers[blj].x-b.x,blockers[blj].y-b.y);if(dist<20&&dist>0)b.x+=(b.x-blockers[blj].x)*1.5*dt;}}
+    var bEngaged=null;
+    for(var bei=0;bei<enemies.length;bei++){if(Math.hypot(enemies[bei].x-b.x,enemies[bei].y-b.y)<(enemies[bei].isBoss?50:35)){bEngaged=enemies[bei];break;}}
+    if(bEngaged){
+      b.attackTimer-=dt;
+      if(b.attackTimer<=0){bEngaged.hp-=b.dmg;playChime('hit');spawnText(bEngaged.x,bEngaged.y,'💢','#ffb74d');b.attackTimer=1.0;if(b.isAncestral)bEngaged.hp-=10;addFury(1);}
+    } else if(enemies.length>0){
+      // Move toward nearest enemy, but stay within range of home
+      var bClosest=null,bMinD=Infinity;
+      for(var bei2=0;bei2<enemies.length;bei2++){var bcd=Math.hypot(enemies[bei2].x-b.x,enemies[bei2].y-b.y);if(bcd<bMinD){bMinD=bcd;bClosest=enemies[bei2];}}
+      var homeDist=Math.hypot(b.homeX-b.x,b.homeY-b.y);
+      if(bClosest&&homeDist<cellW*3){
+        var bang=Math.atan2(bClosest.y-b.y,bClosest.x-b.x);
+        b.x+=Math.cos(bang)*b.speed*dt;b.y+=Math.sin(bang)*b.speed*dt;
+        b.el.style.left=b.x+'px';b.el.style.top=b.y+'px';
+      } else if(homeDist>10){
+        // Return home
+        var homeAng=Math.atan2(b.homeY-b.y,b.homeX-b.x);
+        b.x+=Math.cos(homeAng)*b.speed*dt;b.y+=Math.sin(homeAng)*b.speed*dt;
+        b.el.style.left=b.x+'px';b.el.style.top=b.y+'px';
+      }
+    }
+    if(b.y<-50||b.hp<=0){b.el.remove();blockers.splice(bli,1);}
+  }
+
+  // ENEMIES — mark timer
+  for(var emi=enemies.length-1;emi>=0;emi--){
+    var e=enemies[emi];
+    if(e.marked){
+      e.markTimer-=dt;
+      if(e.markTimer<=0){
+        e.marked=false;
+        if(!e.isBoss)e.el.style.filter='drop-shadow(0 2px 4px black)';
+      }
+    }
+    if(e.hpBar)e.hpBar.style.width=Math.max(0,(e.hp/e.maxHp)*100)+'%';
+    if(e.slowTimer>0){e.slowTimer-=dt;if(e.slowTimer<=0){e.speedMultiplier=1;e.el.style.filter=e.isBoss?'drop-shadow(0 0 15px #ff1744)':'drop-shadow(0 2px 4px black)';}}
+    if(e.burnTimer>0){e.burnTimer-=dt;e.hp-=8*dt;if(!e.slowTimer)e.el.style.filter='drop-shadow(0 0 6px #f97316)';}
+    var blocking=null;
+    for(var bki=0;bki<blockers.length;bki++){if(Math.hypot(blockers[bki].x-e.x,blockers[bki].y-e.y)<(e.isBoss?50:35)){blocking=blockers[bki];break;}}
+    if(blocking){
+      e.attackTimer-=dt;
+      if(e.attackTimer<=0){
+        blocking.hp-=e.isBoss?50:20;
+        blocking.el.style.opacity='0.5';setTimeout((function(bl){return function(){if(bl.el)bl.el.style.opacity='1';};})(blocking),100);
+        if(blocking.isAncestral){e.hp-=10;spawnText(e.x,e.y,'¡Espinas!','#ffb74d');}
+        e.attackTimer=e.isBoss?1.5:1.0;
+      }
+    } else {
+      e.y+=e.baseSpeed*e.speedMultiplier*dt;e.el.style.top=e.y+'px';
+      if(e.y>gameArea.clientHeight-80){
+        var dmg=e.isFinalBoss?60:e.isBoss?40:(e.enemyType==='golem'?25:10);
+        state.pondHp=Math.max(0,state.pondHp-dmg);updateUI();
+        addFury(e.isBoss?15:3);
+        if(state.pondHp<=0&&!state.scoreSaved){state.scoreSaved=true;showEndScreen(false);}
+        e.el.remove();enemies.splice(emi,1);
+        document.getElementById('pond-bar').style.background='rgba(239,68,68,0.4)';
+        setTimeout(function(){document.getElementById('pond-bar').style.background='';},300);
+        continue;
+      }
+    }
+    if(e.hp<=0){
+      var drops=e.isFinalBoss?80:e.isBoss?50:5;
+      state.energy+=drops;updateUI();
+      spawnText(e.x,e.y,'+'+drops+'💧',e.isFinalBoss?'#f97316':e.isBoss?'#ef4444':'#f0d078');
+      addFury(e.isBoss?10:1);
+      // Phoenix explosion
+      if(e.burnTimer>0){
+        var blastR=cellW*2;
+        for(var bxi=0;bxi<enemies.length;bxi++){if(enemies[bxi]!==e&&Math.hypot(enemies[bxi].x-e.x,enemies[bxi].y-e.y)<blastR){enemies[bxi].hp-=25;enemies[bxi].burnTimer=(enemies[bxi].burnTimer||0)+2;}}
+      }
+      // Eagle legendary: mark spreads on death
+      if(e.marked){
+        var spreadTarget=null,spreadMin=cellW*4;
+        for(var spi=0;spi<enemies.length;spi++){if(!enemies[spi].marked&&enemies[spi]!==e){var spd=Math.hypot(enemies[spi].x-e.x,enemies[spi].y-e.y);if(spd<spreadMin){spreadMin=spd;spreadTarget=enemies[spi];}}}
+        if(spreadTarget){spreadTarget.marked=true;spreadTarget.markTimer=3;spreadTarget.el.style.filter='drop-shadow(0 0 8px red)';}
+      }
+      e.el.style.transform='scale(0)';e.el.style.opacity='0';
+      setTimeout((function(ref){return function(){if(ref.parentNode)ref.remove();};})(e.el),200);
+      enemies.splice(emi,1);
+      if(e.isFinalBoss&&!state.victoryPending){state.victoryPending=true;setTimeout(function(){showEndScreen(true);},2000);}
+    }
+  }
+
+  if(!enemies.some(function(e){return e.isBoss;}))
+    gameArea.style.background='linear-gradient(180deg,#0d0d1f 0%,#080812 100%)';
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ── PAUSE / AUTO ──────────────────────────────────────────────────
+function togglePause(){
+  if(!state.isRunning||state.pondHp<=0)return;
+  state.isPaused=!state.isPaused;
+  var btn=document.getElementById('pause-btn');
+  btn.textContent=state.isPaused?'▶':'⏸';btn.className=state.isPaused?'ctrl-btn active-state':'ctrl-btn';
+  if(state.isPaused)bgMusic.pause();
+  else{state.lastFrame=performance.now();if(isMusicEnabled)bgMusic.play().catch(function(){});}
+}
+function toggleAuto(){state.autoMode=!state.autoMode;document.getElementById('auto-btn').className=state.autoMode?'ctrl-btn active-state':'ctrl-btn';}
+
+// ── END SCREEN & CHEST SYSTEM ─────────────────────────────────────
+function showEndScreen(isVictory) {
+  var el=document.getElementById('end-screen');
+  document.getElementById('end-title').textContent=isVictory?'¡Victoria!':'Derrota';
+  document.getElementById('end-title').className=isVictory?'victory':'defeat';
+  document.getElementById('end-subtitle').textContent=isVictory?'El Estanque ha sido protegido':'Las sombras corrompieron el estanque';
+  var stars=0;
+  if(isVictory){
+    if(state.pondHp>0)stars=1;
+    if(state.pondHp>=50)stars=2;
+    if(state.pondHp>=80)stars=3;
+  }
+  // Animate stars
+  ['star1','star2','star3'].forEach(function(sid,i){
+    var star=document.getElementById(sid);star.className='end-star';
+    if(i<stars){setTimeout(function(){star.classList.add('earned');playChime('merge');},300+i*400);}
+  });
+  // Save best stars
+  if(isVictory){
+    var key='stage'+state.stageId+'Stars';
+    if(!playerData[key]||stars>playerData[key]){
+      playerData[key]=stars;
+      // Unlock stage 2 if stage 1 cleared
+      if(state.stageId===1&&stars>0){STAGES[1].unlocked=true;}
+    }
+    savePlayerData();
+  }
+  // Chests
+  var chestsEl=document.getElementById('end-chests');chestsEl.innerHTML='';
+  if(isVictory){
+    for(var ci=0;ci<stars;ci++){
+      var chest=document.createElement('div');chest.className='chest-item';
+      var chestKey='stage'+state.stageId+'_chest'+ci+'_'+new Date().toDateString();
+      var opened=!!playerData.chestsOpened[chestKey];
+      chest.innerHTML='<div class="chest-box'+(opened?' opened':'')+'">🎁</div><div class="chest-label">Cofre '+(ci+1)+'</div>';
+      (function(ck,c){
+        c.querySelector('.chest-box').addEventListener('click',function(){
+          if(!playerData.chestsOpened[ck])openChest(ck,c);
+        });
+      })(chestKey,chest);
+      chestsEl.appendChild(chest);
+    }
+  }
+  el.style.display='flex';
+  if(!state.scoreSaved){state.scoreSaved=true;saveScore();}
+}
+
+function openChest(key, chestEl) {
+  playerData.chestsOpened[key]=true;
+  // Generate rewards
+  var gold=Math.floor(Math.random()*20+10);
+  playerData.gold=(playerData.gold||0)+gold;
+  var cardPool=Object.keys(ALL_UNITS);
+  var card1=ALL_UNITS[cardPool[Math.floor(Math.random()*cardPool.length)]];
+  var card2=ALL_UNITS[cardPool[Math.floor(Math.random()*cardPool.length)]];
+  savePlayerData();
+  document.getElementById('world-gold').textContent=playerData.gold;
+  chestEl.querySelector('.chest-box').classList.add('opened');
+  // Show popup
+  var popup=document.getElementById('chest-reward-popup');
+  document.getElementById('chest-reward-items').innerHTML=
+    '<div class="reward-line">🪙 +'+gold+' oro</div>'+
+    '<div class="reward-line">'+card1.emoji+' Carta: '+card1.name+'</div>'+
+    '<div class="reward-line">'+card2.emoji+' Carta: '+card2.name+'</div>';
+  popup.style.display='flex';
+  playChime('merge');
+}
+function closeChestPopup(){document.getElementById('chest-reward-popup').style.display='none';}
+
+// ── INIT ──────────────────────────────────────────────────────────
+showWorldScreen();
+</script>
 </body>
 </html>
